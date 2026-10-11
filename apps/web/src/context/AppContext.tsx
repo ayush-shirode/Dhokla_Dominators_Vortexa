@@ -1,11 +1,43 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { flushOutbox, initDeviceRegistration } from '@/lib/api';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { api, registerDevice } from '@/lib/api';
+import { runSync } from '@/lib/sync';
+import { ConsentDialog, type CloudFeature, type ConsentAnswer } from '@/components/ConsentDialog';
 import { getSetting, setSetting } from '@/lib/db';
 import { LanguageCode, SUPPORTED_LANGUAGES } from '@repo/shared';
-import enDict from '@/i18n/en.json';
-import hiDict from '@/i18n/hi.json';
+import en from '@/i18n/en.json';
+import hi from '@/i18n/hi.json';
+import mr from '@/i18n/mr.json';
+import bn from '@/i18n/bn.json';
+import ta from '@/i18n/ta.json';
+import te from '@/i18n/te.json';
+import gu from '@/i18n/gu.json';
+import kn from '@/i18n/kn.json';
+import ml from '@/i18n/ml.json';
+import pa from '@/i18n/pa.json';
+import or from '@/i18n/or.json';
+import as from '@/i18n/as.json';
+import ur from '@/i18n/ur.json';
+
+type Catalog = { [key: string]: string | Catalog };
+/** UI string catalogs. English is the per-key fallback (FRONTEND_SPEC §7). */
+const CATALOGS: Record<LanguageCode, Catalog> = { en, hi, mr, bn, ta, te, gu, kn, ml, pa, or, as, ur };
+
+function lookup(dict: Catalog, path: string): string | undefined {
+  let cur: string | Catalog | undefined = dict;
+  for (const p of path.split('.')) {
+    if (!cur || typeof cur === 'string') return undefined;
+    cur = cur[p];
+  }
+  return typeof cur === 'string' ? cur : undefined;
+}
+
+function applyDocumentLanguage(code: LanguageCode): void {
+  if (typeof document === 'undefined') return;
+  document.documentElement.lang = code;
+  document.documentElement.dir = SUPPORTED_LANGUAGES.find((l) => l.code === code)?.rtl ? 'rtl' : 'ltr';
+}
 
 interface AppContextType {
   lang: LanguageCode;
@@ -23,6 +55,16 @@ interface AppContextType {
     cloudAssist: boolean;
   };
   setAiConsent: (consent: { photo: boolean; translate: boolean; cloudAssist: boolean }) => void;
+  /** Server capabilities from GET /meta (cached for offline). */
+  capabilities: { cloudAi: boolean; localOcr: boolean; pdfLanguages: string[] };
+  /**
+   * Asks for consent before a cloud AI call (FRONTEND_SPEC §5, §9). Resolves true when the user
+   * allowed it (now or "always"), false when they declined or cloud AI is not available.
+   */
+  requestCloudConsent: (feature: CloudFeature) => Promise<boolean>;
+  /** One-line notice after a sync, e.g. items updated from the server. */
+  syncNotice: string | null;
+  dismissSyncNotice: () => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -37,6 +79,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     translate: false,
     cloudAssist: false,
   });
+  const [capabilities, setCapabilities] = useState({ cloudAi: false, localOcr: false, pdfLanguages: [] as string[] });
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
+  const [consentAsk, setConsentAsk] = useState<CloudFeature | null>(null);
+  const consentResolver = useRef<((a: ConsentAnswer) => void) | null>(null);
+  const syncing = useRef(false);
 
   useEffect(() => {
     setIsOnline(navigator.onLine);
@@ -55,13 +102,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Load initial settings
     getSetting<LanguageCode>('pref_lang', 'en').then((savedLang) => {
       setLangState(savedLang);
+      applyDocumentLanguage(savedLang);
     });
 
     getSetting('pref_ai_consent', { photo: false, translate: false, cloudAssist: false }).then((c) => {
       setAiConsentState(c);
     });
 
-    initDeviceRegistration().catch(console.warn);
+    getSetting('server_capabilities', { cloudAi: false, localOcr: false, pdfLanguages: [] as string[] }).then(setCapabilities);
+    api
+      .meta()
+      .then((m) => {
+        const caps = { cloudAi: m.capabilities.cloudAi, localOcr: m.capabilities.localOcr, pdfLanguages: m.capabilities.pdfLanguages };
+        setCapabilities(caps);
+        setSetting('server_capabilities', caps);
+      })
+      .catch(() => {
+        /* offline: keep cached capabilities */
+      });
+
+    registerDevice()
+      .then(() => triggerSync())
+      .catch(console.warn);
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -72,11 +134,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const setLang = (newLang: LanguageCode) => {
     setLangState(newLang);
     setSetting('pref_lang', newLang);
-    const langObj = SUPPORTED_LANGUAGES.find((l) => l.code === newLang);
-    if (typeof document !== 'undefined') {
-      document.documentElement.lang = newLang;
-      document.documentElement.dir = langObj?.rtl ? 'rtl' : 'ltr';
-    }
+    applyDocumentLanguage(newLang);
   };
 
   const setAiConsent = (newConsent: { photo: boolean; translate: boolean; cloudAssist: boolean }) => {
@@ -89,17 +147,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSyncStatus('offline');
       return;
     }
+    if (syncing.current) return;
+    syncing.current = true;
     setSyncStatus('syncing');
     try {
-      const res = await flushOutbox();
-      if (res.errors > 0) {
+      if (!(await registerDevice())) {
         setSyncStatus('pending');
-      } else {
-        setSyncStatus('synced');
+        return;
+      }
+      const res = await runSync();
+      setSyncStatus(res.errors.length > 0 ? 'pending' : 'synced');
+      if (res.updatedFromServer > 0) {
+        setSyncNotice(`${res.updatedFromServer} item(s) were updated from a newer copy on the server.`);
+      } else if (res.errors.length > 0) {
+        setSyncNotice(`${res.errors.length} change(s) could not be backed up: ${res.errors[0]!.error.message}`);
       }
     } catch {
       setSyncStatus('pending');
+    } finally {
+      syncing.current = false;
     }
+  };
+
+  const requestCloudConsent = (feature: CloudFeature): Promise<boolean> => {
+    if (!capabilities.cloudAi) return Promise.resolve(false);
+    if (aiConsent[feature]) return Promise.resolve(true);
+    return new Promise<boolean>((resolve) => {
+      consentResolver.current = (answer) => {
+        setConsentAsk(null);
+        consentResolver.current = null;
+        if (answer === 'always') setAiConsent({ ...aiConsent, [feature]: true });
+        resolve(answer !== 'no');
+      };
+      setConsentAsk(feature);
+    });
   };
 
   const speak = (text: string, customLang?: LanguageCode) => {
@@ -127,24 +208,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const t = (path: string): string => {
-    const dict: any = lang === 'hi' ? hiDict : enDict;
-    const parts = path.split('.');
-    let cur = dict;
-    for (const p of parts) {
-      if (cur && cur[p] !== undefined) {
-        cur = cur[p];
-      } else {
-        // Fallback to english
-        let fb: any = enDict;
-        for (const f of parts) {
-          fb = fb ? fb[f] : undefined;
-        }
-        return fb || path;
-      }
-    }
-    return cur || path;
-  };
+  const t = (path: string): string => lookup(CATALOGS[lang] ?? en, path) ?? lookup(en, path) ?? path;
 
   return (
     <AppContext.Provider
@@ -160,9 +224,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isSpeaking,
         aiConsent,
         setAiConsent,
+        capabilities,
+        requestCloudConsent,
+        syncNotice,
+        dismissSyncNotice: () => setSyncNotice(null),
       }}
     >
       {children}
+      {consentAsk && <ConsentDialog feature={consentAsk} onAnswer={(a) => consentResolver.current?.(a)} />}
     </AppContext.Provider>
   );
 }

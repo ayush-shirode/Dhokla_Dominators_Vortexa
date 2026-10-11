@@ -1,19 +1,27 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useCheckId } from '@/lib/routeParams';
 import { Header, BottomNav, ListenButton } from '@/components/Navigation';
 import { DraftReview } from '@/components/DraftReview';
-import { getLocalCheck, saveLocalRecord } from '@/lib/db';
+import {
+  deletePendingPhoto,
+  getLocalCheck,
+  getPendingPhotos,
+  savePendingPhoto,
+  saveLocalRecord,
+  type PendingPhoto,
+} from '@/lib/db';
 import { api } from '@/lib/api';
-import { AiDraft } from '@repo/shared';
+import { useApp } from '@/context/AppContext';
+import { ApiError, type AiDraft } from '@repo/shared';
 import type { LocalRecord } from '@/lib/localTypes';
 import { ArrowLeft, Camera, Image, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function PhotoCapturePage() {
   const router = useRouter();
-  const params = useParams();
-  const checkId = params.checkId as string;
+  const checkId = useCheckId();
 
   const [check, setCheck] = useState<any>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -22,9 +30,17 @@ export default function PhotoCapturePage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [retakeTips, setRetakeTips] = useState<string[]>([]);
+  const [infoMsg, setInfoMsg] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingPhoto[]>([]);
+  const [uploadedPhotoId, setUploadedPhotoId] = useState<string | null>(null);
+  const { capabilities, aiConsent, requestCloudConsent, isOnline } = useApp();
+
+  const refreshPending = () => getPendingPhotos(checkId).then(setPending).catch(() => setPending([]));
 
   useEffect(() => {
     getLocalCheck(checkId).then(setCheck);
+    refreshPending();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkId]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,41 +61,105 @@ export default function PhotoCapturePage() {
     too_small: 'Move closer so the slip fills the frame',
   };
 
-  const handleProcessPhoto = async (userConfirmedNoIds = false) => {
-    if (!photoFile) return;
+  /** Re-encodes to JPEG ≤ 2000 px so uploads are small; falls back to the original file. */
+  const toJpeg = async (blob: Blob): Promise<Blob> => {
+    try {
+      const bmp = await createImageBitmap(blob);
+      const scale = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(bmp.width * scale);
+      canvas.height = Math.round(bmp.height * scale);
+      canvas.getContext('2d')!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+      return await new Promise<Blob>((res) => canvas.toBlob((b) => res(b ?? blob), 'image/jpeg', 0.9));
+    } catch {
+      return blob;
+    }
+  };
+
+  const readPhoto = async (photoId: string, allowCloud: boolean) => {
+    const ocrDraft = await api.ai.ocr({ photoId, checkId, allowCloud });
+    setDraft(ocrDraft);
+  };
+
+  const processBlob = async (blob: Blob, opts: { userConfirmedNoIds?: boolean; pendingId?: string } = {}): Promise<void> => {
     setLoading(true);
     setErrorMsg(null);
+    setInfoMsg(null);
     setRetakeTips([]);
-
     try {
+      const jpeg = await toJpeg(blob);
       // 1. Upload: the server checks quality and blacks out Aadhaar numbers before storing.
-      const photoRes = await api.photos.upload(photoFile, { userConfirmedNoIds });
-      // 2. Read it. allowCloud stays false here: the on-server reader is used (no third-party call).
-      const ocrDraft = await api.ai.ocr({ photoId: photoRes.id, checkId, allowCloud: false });
-      setDraft(ocrDraft);
-    } catch (err: any) {
-      if (err?.code === 'RETAKE_PHOTO') {
-        const issues: string[] = err.details?.issues ?? [];
+      const photo = await api.photos.upload(jpeg, { userConfirmedNoIds: opts.userConfirmedNoIds, filename: 'photo.jpg' });
+      // The unmasked original must not stay on the phone once the masked copy is stored.
+      if (opts.pendingId) {
+        await deletePendingPhoto(opts.pendingId);
+        refreshPending();
+      }
+      setUploadedPhotoId(photo.id);
+      // 2. Read it: on the server (no third party) unless the user always allows AI photo reading.
+      await readPhoto(photo.id, capabilities.cloudAi && aiConsent.photo);
+    } catch (err: unknown) {
+      const e = err as ApiError;
+      if (e?.code === 'NETWORK_ERROR' || !navigator.onLine) {
+        if (!opts.pendingId) {
+          await savePendingPhoto(checkId, blob, 'photo.jpg');
+          refreshPending();
+          setPhotoFile(null);
+          setPreviewUrl(null);
+          setInfoMsg('You are offline. The photo is saved on this phone and will be read when you are back online — tap "Read now" then.');
+        } else {
+          setInfoMsg('Still offline. Try again when you have a connection.');
+        }
+      } else if (e?.code === 'RETAKE_PHOTO') {
+        const issues: string[] = (e.details as { issues?: string[] })?.issues ?? [];
         setErrorMsg('The photo is not clear enough to read reliably. Please retake it.');
         setRetakeTips(issues.map((i) => RETAKE_TIPS[i]).filter(Boolean));
-      } else if (err?.code === 'MASKING_UNAVAILABLE') {
+        if (opts.pendingId) {
+          await deletePendingPhoto(opts.pendingId);
+          refreshPending();
+        }
+      } else if (e?.code === 'MASKING_UNAVAILABLE') {
         const ok = window.confirm(
           'This server cannot scan the photo for Aadhaar numbers. Please make sure no Aadhaar number is visible (cover or crop it). Continue?',
         );
         if (ok) {
           setLoading(false);
-          return handleProcessPhoto(true);
+          return processBlob(blob, { ...opts, userConfirmedNoIds: true });
         }
       } else {
         // Never invent a reading: tell the user and offer manual entry instead.
-        setErrorMsg(
-          'This photo could not be read right now (you may be offline, or reading is unavailable). You can type the values from the slip instead.',
-        );
+        setErrorMsg('This photo could not be read right now. You can type the values from the slip instead.');
       }
     } finally {
       setLoading(false);
     }
   };
+
+  const handleProcessPhoto = async () => {
+    if (photoFile) await processBlob(photoFile);
+  };
+
+  /** Offered after an on-server reading that was unclear, when the server has cloud AI. */
+  const handleTryCloud = async () => {
+    if (!uploadedPhotoId || !draft) return;
+    if (!(await requestCloudConsent('photo'))) return;
+    setLoading(true);
+    try {
+      await api.ai.rejectDraft(draft.id).catch(() => {});
+      await readPhoto(uploadedPhotoId, true);
+    } catch {
+      setErrorMsg('The AI service could not read this photo. Please check the values yourself.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showCloudOffer =
+    !!draft &&
+    draft.engine === 'local' &&
+    capabilities.cloudAi &&
+    draft.kind === 'ocr' &&
+    (draft.result.retakeSuggested || draft.result.lowConfidenceFields.length > 0);
 
   const handleConfirmDraft = async (record: LocalRecord) => {
     let saved: LocalRecord = record;
@@ -119,6 +199,15 @@ export default function PhotoCapturePage() {
           />
         </div>
 
+        {showCloudOffer && (
+          <div className="p-3 bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded text-xs flex items-center justify-between gap-3">
+            <span>Some values were hard to read on this device.</span>
+            <button type="button" onClick={handleTryCloud} disabled={loading} className="px-3 py-1.5 bg-teal-700 text-white rounded font-medium shrink-0">
+              {loading ? 'Reading…' : 'Try reading with AI'}
+            </button>
+          </div>
+        )}
+
         {draft ? (
           <DraftReview
             draft={draft}
@@ -128,6 +217,46 @@ export default function PhotoCapturePage() {
           />
         ) : (
           <div className="bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg p-5 shadow-xs space-y-5">
+            {infoMsg && (
+              <p role="status" className="text-xs p-3 rounded bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-teal-900 dark:text-teal-200">
+                {infoMsg}
+              </p>
+            )}
+
+            {/* Photos taken offline, waiting to be read */}
+            {pending.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-stone-800 dark:text-stone-200 block">
+                  Waiting to be read ({pending.length})
+                </span>
+                {pending.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between gap-2 p-2 rounded border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 text-xs">
+                    <span>Photo taken {new Date(p.createdAt).toLocaleString()}</span>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        type="button"
+                        disabled={!isOnline || loading}
+                        onClick={() => processBlob(p.blob, { pendingId: p.id })}
+                        className="px-2.5 py-1 bg-teal-700 disabled:opacity-50 text-white rounded font-medium"
+                      >
+                        Read now
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await deletePendingPhoto(p.id);
+                          refreshPending();
+                        }}
+                        className="px-2.5 py-1 border border-stone-300 dark:border-stone-700 rounded"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Capture Controls */}
             <div className="border-2 border-dashed border-stone-300 dark:border-stone-700 rounded-lg p-6 text-center space-y-3">
               {previewUrl ? (

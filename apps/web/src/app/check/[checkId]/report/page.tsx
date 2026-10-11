@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useCheckId } from '@/lib/routeParams';
 import { Header, BottomNav, StepProgress, ListenButton } from '@/components/Navigation';
 import { StatusChip } from '@/components/StatusChip';
 import {
@@ -14,6 +15,7 @@ import {
   getLocalFiling,
 } from '@/lib/db';
 import { useApp } from '@/context/AppContext';
+import { TranslatePanel } from '@/components/TranslatePanel';
 import { api, flushOutbox } from '@/lib/api';
 import {
   Report,
@@ -23,6 +25,8 @@ import {
   formatKg,
   POSSIBLE_CAUSES,
   DISCLAIMER,
+  SUPPORTED_LANGUAGES,
+  type LanguageCode,
 } from '@repo/shared';
 import type { LocalCheck, LocalHousehold, LocalRecord } from '@/lib/localTypes';
 import {
@@ -39,8 +43,7 @@ import {
 
 export default function ReportPage() {
   const router = useRouter();
-  const params = useParams();
-  const checkId = params.checkId as string;
+  const checkId = useCheckId();
   const { speak } = useApp();
 
   const [check, setCheck] = useState<LocalCheck | null>(null);
@@ -52,6 +55,7 @@ export default function ReportPage() {
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [extraTranslations, setExtraTranslations] = useState<LanguageCode[]>([]);
 
   useEffect(() => {
     getLocalCheck(checkId).then((chk) => {
@@ -142,6 +146,25 @@ export default function ReportPage() {
       setSaving(false);
     }
   };
+
+  const downloadExport = async (format: 'html' | 'txt', language: LanguageCode) => {
+    if (!savedReport) return;
+    try {
+      const blob = await api.reports.export(savedReport.id, format, language);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `RationSaathi-Report-${check.period}-v${savedReport.version}-${language}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setSaveError('Downloading a translation needs an internet connection.');
+    }
+  };
+
+  const translatedLangs: LanguageCode[] = savedReport
+    ? [...new Set([...savedReport.translations.map((t) => t.language), ...extraTranslations])]
+    : [];
 
   const handleDownloadPdf = async () => {
     if (!savedReport) return;
@@ -290,6 +313,34 @@ export default function ReportPage() {
               <span>Continue to Grievance Helper</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
+          </div>
+        )}
+
+        {savedIsCurrent && savedReport && (
+          <div className="space-y-2">
+            <TranslatePanel
+              purpose="report"
+              reportId={savedReport.id}
+              onApplied={(_, language) => setExtraTranslations((prev) => [...prev, language])}
+            />
+            {translatedLangs.length > 0 && (
+              <div className="text-xs bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded p-3 space-y-1.5">
+                <span className="font-semibold block">Confirmed translations</span>
+                {translatedLangs.map((l) => (
+                  <div key={l} className="flex items-center justify-between gap-2">
+                    <span>{SUPPORTED_LANGUAGES.find((x) => x.code === l)?.nativeName ?? l}</span>
+                    <span className="flex gap-2">
+                      <button type="button" onClick={() => downloadExport('html', l)} className="underline">
+                        Printable page
+                      </button>
+                      <button type="button" onClick={() => downloadExport('txt', l)} className="underline">
+                        Text
+                      </button>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

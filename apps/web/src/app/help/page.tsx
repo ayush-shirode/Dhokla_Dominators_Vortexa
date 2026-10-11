@@ -15,7 +15,8 @@ interface ChatMsg {
 }
 
 export function HelpPageContent() {
-  const { speak, lang } = useApp();
+  const { speak, lang, capabilities, aiConsent, requestCloudConsent } = useApp();
+  const [aiOfferFor, setAiOfferFor] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       id: 'welcome',
@@ -28,12 +29,15 @@ export function HelpPageContent() {
 
   const t = (x: { en: string; hi: string }) => (lang === 'hi' ? x.hi : x.en);
 
-  const handleSend = async (textToSend?: string) => {
+  const handleSend = async (textToSend?: string, forceCloud = false) => {
     const q = (textToSend || input).trim();
     if (!q) return;
 
-    const userMsg: ChatMsg = { id: crypto.randomUUID(), sender: 'user', text: q };
-    setMessages((prev) => [...prev, userMsg]);
+    setAiOfferFor(null);
+    if (!forceCloud) {
+      const userMsg: ChatMsg = { id: crypto.randomUUID(), sender: 'user', text: q };
+      setMessages((prev) => [...prev, userMsg]);
+    }
     if (!textToSend) setInput('');
     const add = (text: string, source: ChatMsg['source']) =>
       setMessages((prev) => [...prev, { id: crypto.randomUUID(), sender: 'assistant', text, source }]);
@@ -45,10 +49,12 @@ export function HelpPageContent() {
     }
 
     // Online: the server answers from the FAQ first and applies the same guardrails.
-    // allowCloud stays false here; AI answers need the user's consent (Settings).
+    // AI answers only with consent ("Always allow" in Settings, or a one-off yes).
     try {
-      const reply = await api.ai.chat({ messages: [{ role: 'user', content: q }], language: lang, allowCloud: false });
+      const allowCloud = forceCloud || (capabilities.cloudAi && aiConsent.cloudAssist);
+      const reply = await api.ai.chat({ messages: [{ role: 'user', content: q }], language: lang, allowCloud });
       add(reply.reply, reply.source === 'ai' ? 'ai' : reply.source === 'guardrail' ? 'guardrail' : 'faq');
+      if (reply.source === 'fallback' && capabilities.cloudAi && !allowCloud) setAiOfferFor(q);
       return;
     } catch {
       /* offline: answer locally */
@@ -63,6 +69,12 @@ export function HelpPageContent() {
           : 'I can answer questions about how RationSaathi works and the grievance process. Try one of the questions below.',
       'faq',
     );
+  };
+
+  const askAi = async () => {
+    if (!aiOfferFor) return;
+    const q = aiOfferFor;
+    if (await requestCloudConsent('cloudAssist')) await handleSend(q, true);
   };
 
   return (
@@ -84,6 +96,15 @@ export function HelpPageContent() {
             label="Listen"
           />
         </div>
+
+        {aiOfferFor && (
+          <div className="p-3 rounded border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-xs flex items-center justify-between gap-3">
+            <span>No built-in answer matched. Ask the AI assistant? It explains process only.</span>
+            <button type="button" onClick={askAi} className="px-3 py-1.5 bg-teal-700 text-white rounded font-medium shrink-0">
+              Ask AI
+            </button>
+          </div>
+        )}
 
         {/* Quick Question Chips */}
         <div>

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useCheckId, usePathSegment } from '@/lib/routeParams';
 import { Header, BottomNav, ListenButton } from '@/components/Navigation';
 import { getLocalCheck, getLocalRecord, saveLocalRecord } from '@/lib/db';
 import {
@@ -16,9 +17,9 @@ import { NEUTRALITY_HINT, flaggedTermsText } from '@/lib/neutrality';
 
 export default function RecordFormPage() {
   const router = useRouter();
-  const params = useParams();
-  const checkId = params.checkId as string;
-  const recordId = params.recordId as string | undefined;
+  const checkId = useCheckId();
+  const recordSeg = usePathSegment(4);
+  const recordId = recordSeg && recordSeg !== 'new' ? recordSeg : undefined;
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [quantityKg, setQuantityKg] = useState<number>(5);

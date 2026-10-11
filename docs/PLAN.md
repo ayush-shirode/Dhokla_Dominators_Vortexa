@@ -136,6 +136,7 @@ Soft-deletes on households/checks/records give tombstones for sync. `DELETE /dev
 4. **Legal review** of the report and grievance wording, and of the privacy notes. This tool is not legal advice.
 5. Aadhaar masking is **best-effort**. It depends on OCR reading the number, so it is weaker on handwriting, skewed photos and stylised fonts. The UI tells users to cover IDs anyway.
 6. Tune the photo-quality thresholds (env vars) on real phone photos of e-PoS slips.
+6a. **UI translation coverage.** The navigation, sync status and main actions are translated into all 13 languages (`apps/web/src/i18n`). Most body text on screens is still English, which means a full string extraction is still needed. The 11 non-Hindi catalogs were written without a native speaker and need review. Generated content (report, grievance text, read-backs, FAQ) is English or Hindi, and other languages go through user-confirmed AI translation.
 7. Pilot hosting: SQLite + local disk suits a pilot. For scale, move to Postgres + object storage, put the API behind TLS, and add backups.
 
 ## 9. Not planned (out of scope by design)

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { usePathSegment } from '@/lib/routeParams';
 import { Header, BottomNav, ListenButton } from '@/components/Navigation';
 import { RuleCard } from '@/components/RuleCard';
 import { getLocalHousehold, saveLocalHousehold } from '@/lib/db';
@@ -18,8 +19,9 @@ import { Lock, Save, ArrowLeft, Volume2, ShieldCheck } from 'lucide-react';
 
 export default function HouseholdSetupPage() {
   const router = useRouter();
-  const params = useParams();
-  const editId = params?.id as string | undefined;
+  // /household/<id>/edit → id from the real URL (works with the offline page fallback).
+  const pathId = usePathSegment(2);
+  const editId = pathId && pathId !== 'new' ? pathId : undefined;
 
   const [label, setLabel] = useState('My household');
   const [cardType, setCardType] = useState<CardType>('PHH');

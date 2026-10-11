@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useCheckId } from '@/lib/routeParams';
 import { Header, BottomNav, StepProgress, ListenButton } from '@/components/Navigation';
 import { SummaryPanel } from '@/components/SummaryPanel';
 import { StatusChip, EvidenceBadge } from '@/components/StatusChip';
@@ -11,6 +12,7 @@ import {
   getLocalCheck,
   getLocalHousehold,
   getLocalRecords,
+  getPendingPhotos,
   saveLocalHousehold,
   deleteLocalRecord,
 } from '@/lib/db';
@@ -36,9 +38,8 @@ import {
 } from 'lucide-react';
 
 export default function CheckLedgerPage() {
-  const params = useParams();
   const router = useRouter();
-  const checkId = params.checkId as string;
+  const checkId = useCheckId();
 
   const [check, setCheck] = useState<LocalCheck | null>(null);
   const [household, setHousehold] = useState<LocalHousehold | null>(null);
@@ -46,6 +47,13 @@ export default function CheckLedgerPage() {
   const [summary, setSummary] = useState<DiscrepancySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [pendingPhotoCount, setPendingPhotoCount] = useState(0);
+
+  useEffect(() => {
+    getPendingPhotos(checkId)
+      .then((p) => setPendingPhotoCount(p.length))
+      .catch(() => setPendingPhotoCount(0));
+  }, [checkId]);
 
   const loadAll = async () => {
     setLoading(true);
@@ -135,6 +143,14 @@ export default function CheckLedgerPage() {
       <StepProgress activeStep={2} checkId={checkId} />
 
       <main className="flex-1 max-w-5xl mx-auto px-4 py-6 w-full space-y-6">
+        {pendingPhotoCount > 0 && (
+          <Link
+            href={`/check/${checkId}/capture`}
+            className="block p-3 rounded border border-teal-300 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 text-xs text-teal-900 dark:text-teal-200"
+          >
+            {pendingPhotoCount} photo{pendingPhotoCount === 1 ? '' : 's'} saved offline {pendingPhotoCount === 1 ? 'is' : 'are'} waiting to be read. Tap to read {pendingPhotoCount === 1 ? 'it' : 'them'} now →
+          </Link>
+        )}
         {/* Header Strip */}
         <div className="bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg p-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>

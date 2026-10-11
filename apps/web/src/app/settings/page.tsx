@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { Header, BottomNav, ListenButton } from '@/components/Navigation';
 import { useApp } from '@/context/AppContext';
 import { SUPPORTED_LANGUAGES, LanguageCode } from '@repo/shared';
-import { clearAllLocalData, getDb } from '@/lib/db';
+import { clearAllLocalData, getDb, getDeviceCredentials } from '@/lib/db';
+import { api, forgetDeviceToken } from '@/lib/api';
 import {
   Globe,
   Shield,
@@ -44,18 +45,38 @@ export default function SettingsPage() {
 
   const handleDeleteEverything = async () => {
     const confirm1 = window.confirm(
-      'Are you sure you want to delete all local data? This cannot be undone.'
+      'Delete everything? This removes all households, months, records, photos and reports from this phone AND from the backup server. It cannot be undone.',
     );
     if (!confirm1) return;
-    const confirm2 = window.confirm(
-      'Second confirmation: This will wipe all households, monthly checks, records, and reports from this device.'
-    );
+    const confirm2 = window.confirm('Second confirmation: delete all RationSaathi data now?');
     if (!confirm2) return;
 
     setClearing(true);
     try {
+      // Remember the device token so the server copy can still be erased if we are offline now.
+      const creds = await getDeviceCredentials();
+      if (creds && !creds.token.startsWith('offline-')) localStorage.setItem('rs_pending_wipe_token', creds.token);
+
+      let serverDeleted = false;
+      try {
+        await api.devices.deleteAll();
+        serverDeleted = true;
+        localStorage.removeItem('rs_pending_wipe_token');
+      } catch (err) {
+        // 401: the server has nothing for this device any more.
+        if ((err as { code?: string })?.code === 'UNAUTHORIZED') {
+          serverDeleted = true;
+          localStorage.removeItem('rs_pending_wipe_token');
+        }
+      }
+
       await clearAllLocalData();
-      alert('All local data wiped successfully.');
+      forgetDeviceToken();
+      alert(
+        serverDeleted
+          ? 'All data was deleted from this phone and from the server.'
+          : 'All data was deleted from this phone. The server copy will be deleted automatically the next time you are online.',
+      );
       window.location.href = '/';
     } finally {
       setClearing(false);

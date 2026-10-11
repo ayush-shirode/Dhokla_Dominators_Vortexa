@@ -1,10 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useCheckId } from '@/lib/routeParams';
 import { Header, BottomNav, ListenButton } from '@/components/Navigation';
 import { DraftReview } from '@/components/DraftReview';
-import { getLocalCheck, saveLocalRecord } from '@/lib/db';
+import { getLocalCheck } from '@/lib/db';
+import { api } from '@/lib/api';
+import { saveConfirmedDraft } from '@/lib/drafts';
+import { useApp } from '@/context/AppContext';
 import {
   AiDraft,
   extractFromText,
@@ -17,12 +21,13 @@ import { ArrowLeft, Clipboard, Sparkles } from 'lucide-react';
 
 export default function PasteTextPage() {
   const router = useRouter();
-  const params = useParams();
-  const checkId = params.checkId as string;
+  const checkId = useCheckId();
 
   const [check, setCheck] = useState<any>(null);
   const [text, setText] = useState('');
   const [draft, setDraft] = useState<AiDraft | null>(null);
+  const [reading, setReading] = useState(false);
+  const { capabilities, aiConsent, requestCloudConsent } = useApp();
 
   useEffect(() => {
     getLocalCheck(checkId).then(setCheck);
@@ -39,19 +44,10 @@ export default function PasteTextPage() {
     }
   };
 
-  const handleExtract = () => {
-    if (!text.trim()) return;
-
-    // Redact sensitive numbers offline
-    const { text: cleanText, count } = redactSensitiveIds(text);
-
-    // Pure rule-based extraction from @repo/shared
-    const extracted = extractFromText(cleanText, {
-      period: check?.period,
-      sourceType: 'sms',
-    });
-
-    const aiDraft: AiDraft = {
+  const localDraft = (cleanText: string): AiDraft => {
+    // Pure rule-based extraction from @repo/shared (works offline).
+    const extracted = extractFromText(cleanText, { period: check?.period, sourceType: 'sms' });
+    return {
       id: crypto.randomUUID(),
       kind: 'text_extract',
       status: 'pending',
@@ -64,12 +60,39 @@ export default function PasteTextPage() {
       createdAt: new Date().toISOString(),
       resolvedAt: null,
     };
-
-    setDraft(aiDraft);
   };
 
+  const readText = async (allowCloud: boolean) => {
+    if (!text.trim()) return;
+    // ID numbers are removed before the text goes anywhere.
+    const { text: cleanText } = redactSensitiveIds(text);
+    setReading(true);
+    try {
+      setDraft(await api.ai.extractText({ text: cleanText, sourceType: 'sms', checkId, allowCloud }));
+    } catch {
+      setDraft(localDraft(cleanText));
+    } finally {
+      setReading(false);
+    }
+  };
+
+  const handleExtract = () => readText(capabilities.cloudAi && aiConsent.cloudAssist);
+
+  const handleTryCloud = async () => {
+    if (!draft || !(await requestCloudConsent('cloudAssist'))) return;
+    if (draft.id.startsWith('d_')) api.ai.rejectDraft(draft.id).catch(() => {});
+    await readText(true);
+  };
+
+  const showCloudOffer =
+    !!draft &&
+    draft.engine === 'local' &&
+    capabilities.cloudAi &&
+    draft.kind === 'text_extract' &&
+    (draft.result.legibility !== 'good' || draft.result.lowConfidenceFields.length > 0);
+
   const handleConfirmDraft = async (record: LocalRecord) => {
-    await saveLocalRecord(record);
+    if (draft) await saveConfirmedDraft(draft.id, record);
     router.push(`/check/${checkId}`);
   };
 
@@ -97,12 +120,22 @@ export default function PasteTextPage() {
         </div>
 
         {draft ? (
+          <>
+          {showCloudOffer && (
+            <div className="p-3 mb-3 bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded text-xs flex items-center justify-between gap-3">
+              <span>Some values could not be read on this device (for example, text in a regional script).</span>
+              <button type="button" onClick={handleTryCloud} disabled={reading} className="px-3 py-1.5 bg-teal-700 text-white rounded font-medium shrink-0">
+                {reading ? 'Reading…' : 'Read with AI'}
+              </button>
+            </div>
+          )}
           <DraftReview
             draft={draft}
             checkId={checkId}
             onConfirm={handleConfirmDraft}
             onDiscard={() => setDraft(null)}
           />
+          </>
         ) : (
           <div className="bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg p-5 shadow-xs space-y-4">
             <div className="flex items-center justify-between">

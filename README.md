@@ -93,9 +93,20 @@ To run them separately: `pnpm dev:api` and `pnpm dev:web`. Run `pnpm build:share
 ### 7. Tests and checks
 
 ```bash
-pnpm test        # 37 backend + engine tests (principles, full API flows, photo masking, sync)
+pnpm test        # 37 backend + engine tests, plus the UI catalog check (all 13 languages complete and neutral)
 pnpm typecheck   # shared + API + web
 ```
+
+### Offline use and installing on a phone
+
+The service worker only runs in a **production build**, so test offline behaviour with `pnpm build && pnpm start`, not `pnpm dev`.
+
+- Open the app once while online. It then saves its pages so it can open with no network, and every month's ledger works offline, including months created offline.
+- Records and photos added offline are saved on the phone. Records back up automatically when the connection returns. Photos show **Waiting to be read**; tap **Read now** once you're online.
+- To install it: in Chrome, use **Add to Home screen**. Browsers only allow installing over `https://` or on `localhost`.
+- To test offline in Chrome: DevTools → Network → **Offline**.
+
+Cloud AI features (AI photo reading, translation into languages other than English and Hindi, AI chat answers) need `ANTHROPIC_API_KEY` on the server. The app asks the user's permission before each use, unless they chose "Always allow" in Settings.
 
 ### 8. Production build
 

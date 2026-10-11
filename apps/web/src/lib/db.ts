@@ -41,10 +41,24 @@ interface RationSaathiDB extends DBSchema {
     key: string;
     value: any;
   };
+  /** Photos taken offline, waiting to be uploaded and read. Deleted as soon as the upload succeeds. */
+  pendingPhotos: {
+    key: string;
+    value: PendingPhoto;
+    indexes: { 'by-check': string };
+  };
+}
+
+export interface PendingPhoto {
+  id: string;
+  checkId: string;
+  blob: Blob;
+  fileName: string;
+  createdAt: string;
 }
 
 const DB_NAME = 'rationsaathi_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<RationSaathiDB>> | null = null;
 
@@ -54,7 +68,11 @@ export function getDb(): Promise<IDBPDatabase<RationSaathiDB>> {
   }
   if (!dbPromise) {
     dbPromise = openDB<RationSaathiDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion) {
+        if (oldVersion < 2) {
+          db.createObjectStore('pendingPhotos', { keyPath: 'id' }).createIndex('by-check', 'checkId');
+        }
+        if (oldVersion >= 1) return;
         db.createObjectStore('devices', { keyPath: 'deviceId' });
         db.createObjectStore('households', { keyPath: 'id' });
         
@@ -83,6 +101,11 @@ export async function getDeviceCredentials(): Promise<{ deviceId: string; token:
   const db = await getDb();
   const all = await db.getAll('devices');
   return all.length > 0 ? { deviceId: all[0].deviceId, token: all[0].token } : null;
+}
+
+export async function clearDeviceCredentials(): Promise<void> {
+  const db = await getDb();
+  await db.clear('devices');
 }
 
 export async function saveDeviceCredentials(deviceId: string, token: string): Promise<void> {
@@ -277,6 +300,25 @@ export async function clearAllLocalData(): Promise<void> {
   await db.clear('filings');
   await db.clear('outbox');
   await db.clear('settings');
+  await db.clear('pendingPhotos');
+}
+
+// Offline photo queue
+export async function savePendingPhoto(checkId: string, blob: Blob, fileName: string): Promise<PendingPhoto> {
+  const db = await getDb();
+  const p: PendingPhoto = { id: crypto.randomUUID(), checkId, blob, fileName, createdAt: new Date().toISOString() };
+  await db.put('pendingPhotos', p);
+  return p;
+}
+
+export async function getPendingPhotos(checkId: string): Promise<PendingPhoto[]> {
+  const db = await getDb();
+  return db.getAllFromIndex('pendingPhotos', 'by-check', checkId);
+}
+
+export async function deletePendingPhoto(id: string): Promise<void> {
+  const db = await getDb();
+  await db.delete('pendingPhotos', id);
 }
 
 // Example Data seeder

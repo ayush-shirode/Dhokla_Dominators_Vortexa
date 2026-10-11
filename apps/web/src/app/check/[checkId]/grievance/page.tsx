@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useCheckId } from '@/lib/routeParams';
 import { Header, BottomNav, StepProgress, ListenButton } from '@/components/Navigation';
 import {
   getLocalCheck,
@@ -15,6 +16,7 @@ import {
   saveLocalCheck,
 } from '@/lib/db';
 import { useApp } from '@/context/AppContext';
+import { TranslatePanel } from '@/components/TranslatePanel';
 import {
   Report,
   Filing,
@@ -22,6 +24,7 @@ import {
   generateGrievanceDescription,
   checkNeutrality,
   stateName,
+  type LanguageCode,
 } from '@repo/shared';
 import { api } from '@/lib/api';
 import type { LocalCheck, LocalHousehold, LocalRecord } from '@/lib/localTypes';
@@ -40,8 +43,7 @@ import { NEUTRALITY_HINT, flaggedTermsText } from '@/lib/neutrality';
 
 export default function GrievanceHelperPage() {
   const router = useRouter();
-  const params = useParams();
-  const checkId = params.checkId as string;
+  const checkId = useCheckId();
   const { speak } = useApp();
 
   const [check, setCheck] = useState<LocalCheck | null>(null);
@@ -60,6 +62,8 @@ export default function GrievanceHelperPage() {
   const [isSavingFiling, setIsSavingFiling] = useState(false);
   const [filingNote, setFilingNote] = useState<string | null>(null);
   // Official portal from the API's sourced directory; nfsa.gov.in when offline or not yet synced.
+  const [languageAdvice, setLanguageAdvice] = useState<string | null>(null);
+  const [descriptionLang, setDescriptionLang] = useState<string>('en');
   const [portal, setPortal] = useState<{ url: string; statusUrl: string | null; channelId: string | null }>({
     url: 'https://nfsa.gov.in/',
     statusUrl: null,
@@ -69,7 +73,15 @@ export default function GrievanceHelperPage() {
   useEffect(() => {
     api.grievance
       .get(checkId)
-      .then((g) => setPortal({ url: g.portal.url, statusUrl: g.portal.statusUrl, channelId: g.portal.channelId }))
+      .then((g) => {
+        setPortal({ url: g.portal.url, statusUrl: g.portal.statusUrl, channelId: g.portal.channelId });
+        setLanguageAdvice(g.languageAdvice.message);
+        // Keep a translated or user-edited description saved on the server.
+        if (g.descriptionSource !== 'generated') {
+          setDescription(g.description);
+          setDescriptionLang(g.descriptionLanguage);
+        }
+      })
       .catch(() => {
         /* offline or not synced yet: keep the default */
       });
@@ -135,7 +147,7 @@ ${description}`;
   };
 
   const handlePlayReadBack = () => {
-    speak(description);
+    speak(description, descriptionLang as LanguageCode);
     setReadBackDone(true);
   };
 
@@ -363,7 +375,12 @@ ${description}`;
               <textarea
                 rows={6}
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  // The user must hear (or read) exactly what will be submitted.
+                  setReadBackDone(false);
+                  setHasSelfRead(false);
+                }}
                 className="w-full px-3 py-2 text-xs font-mono bg-stone-50 dark:bg-stone-950 border border-stone-300 dark:border-stone-700 rounded focus:outline-none focus:ring-2 focus:ring-teal-600"
               />
               {!neutrality.ok && (
@@ -371,7 +388,22 @@ ${description}`;
                   {NEUTRALITY_HINT} (Flagged: {flaggedTermsText(neutrality)})
                 </p>
               )}
+              {descriptionLang !== 'en' && (
+                <p className="text-[11px] text-stone-500">Description language: {descriptionLang}</p>
+              )}
             </div>
+
+            <TranslatePanel
+              purpose="grievance_description"
+              checkId={checkId}
+              advice={languageAdvice}
+              onApplied={(text, language) => {
+                setDescription(text);
+                setDescriptionLang(language);
+                setReadBackDone(false);
+                setHasSelfRead(false);
+              }}
+            />
           </div>
         </div>
 

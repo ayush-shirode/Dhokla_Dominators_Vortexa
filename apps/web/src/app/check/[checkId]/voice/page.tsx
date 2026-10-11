@@ -1,25 +1,28 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useCheckId } from '@/lib/routeParams';
 import { Header, BottomNav, ListenButton } from '@/components/Navigation';
 import { DraftReview } from '@/components/DraftReview';
-import { getLocalCheck, getLocalHousehold, saveLocalRecord } from '@/lib/db';
+import { getLocalCheck, getLocalHousehold } from '@/lib/db';
+import { api } from '@/lib/api';
+import { saveConfirmedDraft } from '@/lib/drafts';
 import { useApp } from '@/context/AppContext';
 import {
   AiDraft,
   parseVoiceTranscript,
   formatKg,
   computeEntitlement,
+  speechLangFor,
 } from '@repo/shared';
 import type { LocalRecord } from '@/lib/localTypes';
 import { ArrowLeft, Mic, MicOff, Volume2, CheckCircle2, RotateCcw } from 'lucide-react';
 
 export default function VoiceEntryPage() {
   const router = useRouter();
-  const params = useParams();
-  const checkId = params.checkId as string;
-  const { speak, isSpeaking } = useApp();
+  const checkId = useCheckId();
+  const { speak, isSpeaking, lang, capabilities, aiConsent } = useApp();
 
   const [check, setCheck] = useState<any>(null);
   const [household, setHousehold] = useState<any>(null);
@@ -58,7 +61,8 @@ export default function VoiceEntryPage() {
 
     try {
       const recognition = new SpeechRecognition();
-      recognition.lang = 'hi-IN';
+      // Recognise speech in the user's chosen language (FRONTEND_SPEC §5.3).
+      recognition.lang = speechLangFor(lang);
       recognition.interimResults = true;
       recognition.continuous = false;
 
@@ -88,40 +92,47 @@ export default function VoiceEntryPage() {
     }
   };
 
-  const handleProcessVoice = (textToParse: string) => {
+  const handleProcessVoice = async (textToParse: string) => {
     // Fractions ("half") are resolved against the CONFIRMED rule only (Principle 1); otherwise the
     // parser leaves the quantity empty and the user types it.
     const entitlementKg = household?.ruleConfirmed ? computeEntitlement(household).kg : undefined;
 
-    // Rule-based parser from @repo/shared (offline). Its confidences are kept as-is so that
-    // uncertain values (e.g. a spoken "half") must be checked by the user (Principle 4).
-    const { readBack, ...parsed } = parseVoiceTranscript(textToParse, {
-      period: check?.period,
-      entitlementKg,
-    });
+    let next: AiDraft;
+    try {
+      // Online: the server parses (rule-based, or AI when the user allowed it and the sentence is hard).
+      next = await api.ai.voiceParse({
+        transcript: textToParse,
+        language: lang,
+        checkId,
+        allowCloud: capabilities.cloudAi && aiConsent.cloudAssist,
+      });
+    } catch {
+      // Offline: rule-based parser from @repo/shared. Its confidences are kept as-is so that
+      // uncertain values (e.g. a spoken "half") must be checked by the user (Principle 4).
+      const { readBack, ...parsed } = parseVoiceTranscript(textToParse, { period: check?.period, entitlementKg });
+      next = {
+        id: crypto.randomUUID(),
+        kind: 'voice',
+        status: 'pending',
+        engine: 'local',
+        checkId,
+        photoId: null,
+        warnings: [],
+        result: parsed,
+        readBack: { language: 'en', text: readBack },
+        createdAt: new Date().toISOString(),
+        resolvedAt: null,
+      };
+    }
 
-    const aiDraft: AiDraft = {
-      id: crypto.randomUUID(),
-      kind: 'voice',
-      status: 'pending',
-      engine: 'local',
-      checkId,
-      photoId: null,
-      warnings: [],
-      result: parsed,
-      readBack: { language: 'en', text: readBack },
-      createdAt: new Date().toISOString(),
-      resolvedAt: null,
-    };
-
-    setDraft(aiDraft);
-    // Mandatory read-back per Principle P4 / Section 5.3
-    speak(readBack);
+    setDraft(next);
+    // Mandatory read-back per Principle P4 / Section 5.3, in the language it was written in.
+    speak(next.readBack.text, next.readBack.language);
     setReadBackDone(true);
   };
 
   const handleConfirmDraft = async (record: LocalRecord) => {
-    await saveLocalRecord(record);
+    if (draft) await saveConfirmedDraft(draft.id, record);
     router.push(`/check/${checkId}`);
   };
 
