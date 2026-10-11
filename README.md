@@ -4,6 +4,10 @@
 
 RationSaathi helps a ration-card holder compare what they are entitled to under India's National Food Security Act with what they actually received, with every figure tied to evidence. It produces a strictly neutral report and prepares a grievance that **they file themselves** on the official portal. It never decides why a difference exists, never accuses anyone, and never submits anything on the user's behalf.
 
+![RationSaathi technical approach](docs/technical-approach.png)
+
+*The path from evidence to complaint, with who is in charge at each step: [docs/user-flow.png](docs/user-flow.png). Both diagrams are generated from [docs/diagrams/build_diagrams.py](docs/diagrams/build_diagrams.py) (SVG versions sit next to the PNGs).*
+
 | Document | For |
 |---|---|
 | [docs/PLAN.md](docs/PLAN.md) | Idea analysis, architecture, how each core principle is enforced, work plan, open items |

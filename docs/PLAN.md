@@ -11,6 +11,10 @@ Companion documents: [FRONTEND_SPEC.md](FRONTEND_SPEC.md) (UI build spec and ful
 
 A ration-card holder under India's National Food Security Act (NFSA) is entitled to a fixed quantity of foodgrains each month: 5 kg per person (Priority Household, PHH) or 35 kg per family (Antyodaya, AAY). When they receive less, they rarely have an organised, checkable record, and filing a grievance means typing a free-text complaint into a government portal. RationSaathi turns "I think I got less" into a **neutral, evidence-backed statement of a difference**. It records the rule, every collection with its slip/SMS/photo/note, the plain arithmetic, and a list of possible causes the tool does *not* choose between. It then prepares the grievance fields so the beneficiary can file it **themselves** on the real portal.
 
+![Technical approach](technical-approach.png)
+
+![From evidence to complaint](user-flow.png)
+
 ## 2. Analysis
 
 ### 2.1 Users and context

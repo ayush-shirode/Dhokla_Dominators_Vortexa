@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 760" width="1500" height="760" role="img" aria-label="From evidence to complaint">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1e2a3a"/></marker><marker id="at" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0f6e5c"/></marker><marker id="aw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9c6e26"/></marker></defs>
+<rect width="1500" height="760" fill="#f3f0e6"/>
+<text x="40" y="46" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#1e2a3a" text-anchor="start">From evidence to complaint — where the user stays in control</text>
+<text x="40" y="70" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="13.5" font-weight="400" fill="#5b6472" text-anchor="start">Teal = plain code. Wheat = the user decides. Slate = optional AI that can only draft.</text>
+<rect x="34" y="110" width="190" height="190" rx="12" fill="#dcece7" stroke="#0f6e5c" stroke-width="1.8"/>
+<circle cx="54" cy="132" r="11" fill="#0f6e5c"/>
+<text x="54" y="136.5" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+<text x="74" y="137" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="14" font-weight="700" fill="#1e2a3a" text-anchor="start">Choose state and</text>
+<text x="74" y="153" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="14" font-weight="700" fill="#1e2a3a" text-anchor="start">card</text>
+<text x="48" y="181" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">State list → that state&#x27;s</text>
+<text x="48" y="196" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">card names</text>
+<text x="48" y="216" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">AAY / PHH pre-fill a</text>
+<text x="48" y="231" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">sourced figure</text>
+<text x="48" y="251" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Other cards: user types</text>
+<text x="48" y="266" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">figure + source</text>
+<path d="M225,205 L237,205" fill="none" stroke="#1e2a3a" stroke-width="2" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="238" y="110" width="190" height="190" rx="12" fill="#f1e4c7" stroke="#9c6e26" stroke-width="1.8"/>
+<circle cx="258" cy="132" r="11" fill="#9c6e26"/>
+<text x="258" y="136.5" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+<text x="278" y="137" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="14" font-weight="700" fill="#1e2a3a" text-anchor="start">Confirm the rule</text>
+<text x="252" y="165" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Formula shown: 5 kg × 4 =</text>
+<text x="252" y="180" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">20 kg</text>
+<text x="252" y="200" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Source and &quot;last verified&quot;</text>
+<text x="252" y="215" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">date shown</text>
+<text x="252" y="235" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Any edit un-confirms it</text>
+<path d="M429,205 L441,205" fill="none" stroke="#1e2a3a" stroke-width="2" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="442" y="110" width="190" height="190" rx="12" fill="#dcece7" stroke="#0f6e5c" stroke-width="1.8"/>
+<circle cx="462" cy="132" r="11" fill="#0f6e5c"/>
+<text x="462" y="136.5" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+<text x="482" y="137" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="14" font-weight="700" fill="#1e2a3a" text-anchor="start">Add what was</text>
+<text x="482" y="153" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="14" font-weight="700" fill="#1e2a3a" text-anchor="start">received</text>
+<text x="456" y="181" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Type · paste SMS · speak ·</text>
+<text x="456" y="196" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">photo</text>
+<text x="456" y="216" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Each visit is a record with</text>
+<text x="456" y="231" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">evidence</text>
+<text x="456" y="251" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">No evidence → labelled</text>
+<text x="456" y="266" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Unrecorded</text>
+<path d="M633,205 L645,205" fill="none" stroke="#1e2a3a" stroke-width="2" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="646" y="110" width="190" height="190" rx="12" fill="#f1e4c7" stroke="#9c6e26" stroke-width="1.8"/>
+<circle cx="666" cy="132" r="11" fill="#9c6e26"/>
+<text x="666" y="136.5" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+<text x="686" y="137" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="14" font-weight="700" fill="#1e2a3a" text-anchor="start">Check every reading</text>
+<text x="660" y="165" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Photo, voice and AI results</text>
+<text x="660" y="180" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">are drafts</text>
+<text x="660" y="200" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Doubtful values are</text>
+<text x="660" y="215" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">highlighted</text>
+<text x="660" y="235" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Unchecked → Unclear (not</text>
+<text x="660" y="250" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">counted)</text>
+<path d="M837,205 L849,205" fill="none" stroke="#1e2a3a" stroke-width="2" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="850" y="110" width="190" height="190" rx="12" fill="#dcece7" stroke="#0f6e5c" stroke-width="1.8"/>
+<circle cx="870" cy="132" r="11" fill="#0f6e5c"/>
+<text x="870" y="136.5" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">5</text>
+<text x="890" y="137" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="14" font-weight="700" fill="#1e2a3a" text-anchor="start">Plain arithmetic</text>
+<text x="864" y="165" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Entitlement − counted</text>
+<text x="864" y="180" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">received</text>
+<text x="864" y="200" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Shortfall · Late ·</text>
+<text x="864" y="215" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Unrecorded · Unclear</text>
+<text x="864" y="235" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Labels describe data, never</text>
+<text x="864" y="250" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">causes</text>
+<path d="M1041,205 L1053,205" fill="none" stroke="#1e2a3a" stroke-width="2" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="1054" y="110" width="190" height="190" rx="12" fill="#dcece7" stroke="#0f6e5c" stroke-width="1.8"/>
+<circle cx="1074" cy="132" r="11" fill="#0f6e5c"/>
+<text x="1074" y="136.5" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">6</text>
+<text x="1094" y="137" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="14" font-weight="700" fill="#1e2a3a" text-anchor="start">Neutral report</text>
+<text x="1068" y="165" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Every record with its</text>
+<text x="1068" y="180" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">evidence</text>
+<text x="1068" y="200" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Line-by-line sums + SHA-256</text>
+<text x="1068" y="215" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">hash</text>
+<text x="1068" y="235" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Possible causes listed,</text>
+<text x="1068" y="250" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">none claimed</text>
+<path d="M1245,205 L1257,205" fill="none" stroke="#1e2a3a" stroke-width="2" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="1258" y="110" width="190" height="190" rx="12" fill="#f1e4c7" stroke="#9c6e26" stroke-width="1.8"/>
+<circle cx="1278" cy="132" r="11" fill="#9c6e26"/>
+<text x="1278" y="136.5" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">7</text>
+<text x="1298" y="137" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="14" font-weight="700" fill="#1e2a3a" text-anchor="start">Listen, copy, file</text>
+<text x="1272" y="165" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Complaint text read aloud</text>
+<text x="1272" y="180" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">first</text>
+<text x="1272" y="200" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">Fields copied to the</text>
+<text x="1272" y="215" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">official portal</text>
+<text x="1272" y="235" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">User files with their own</text>
+<text x="1272" y="250" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="11.8" font-weight="400" fill="#5b6472" text-anchor="start">OTP</text>
+<text x="40" y="352" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="16" font-weight="700" fill="#1e2a3a" text-anchor="start">Who is in charge at each step</text>
+<rect x="34" y="372" width="458" height="112" rx="12" fill="#dcece7" stroke="#0f6e5c" stroke-width="1.8"/>
+<text x="50" y="399" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="15" font-weight="700" fill="#0f6e5c" text-anchor="start">Code</text>
+<text x="50" y="424" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.3" font-weight="400" fill="#1e2a3a" text-anchor="start">Entitlement maths, labels, report and complaint wording,</text>
+<text x="50" y="441" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.3" font-weight="400" fill="#1e2a3a" text-anchor="start">neutrality and Aadhaar checks. Works offline. AI is never</text>
+<text x="50" y="458" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.3" font-weight="400" fill="#1e2a3a" text-anchor="start">involved.</text>
+<rect x="512" y="372" width="458" height="112" rx="12" fill="#f1e4c7" stroke="#9c6e26" stroke-width="1.8"/>
+<text x="528" y="399" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="15" font-weight="700" fill="#9c6e26" text-anchor="start">User</text>
+<text x="528" y="424" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.3" font-weight="400" fill="#1e2a3a" text-anchor="start">Confirms the rule, confirms every machine reading, listens to</text>
+<text x="528" y="441" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.3" font-weight="400" fill="#1e2a3a" text-anchor="start">the complaint before copying it, and submits it on the</text>
+<text x="528" y="458" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.3" font-weight="400" fill="#1e2a3a" text-anchor="start">official site.</text>
+<rect x="990" y="372" width="458" height="112" rx="12" fill="#e4e8ee" stroke="#44546a" stroke-width="1.8"/>
+<text x="1006" y="399" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="15" font-weight="700" fill="#44546a" text-anchor="start">Optional AI</text>
+<text x="1006" y="424" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.3" font-weight="400" fill="#1e2a3a" text-anchor="start">Reads photos, voice and regional-language text, and</text>
+<text x="1006" y="441" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.3" font-weight="400" fill="#1e2a3a" text-anchor="start">translates. Always returns a draft with a confidence level;</text>
+<text x="1006" y="458" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.3" font-weight="400" fill="#1e2a3a" text-anchor="start">asked for each use.</text>
+<text x="40" y="530" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="16" font-weight="700" fill="#1e2a3a" text-anchor="start">What happens to a photo of a slip</text>
+<rect x="34" y="552" width="182" height="96" rx="10" fill="#dcece7" stroke="#0f6e5c" stroke-width="1.6"/>
+<text x="46" y="574" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="10.5" font-weight="700" fill="#0f6e5c" text-anchor="start">PHONE</text>
+<text x="46" y="598" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="600" fill="#1e2a3a" text-anchor="start">Take photo</text>
+<text x="46" y="615" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="400" fill="#5b6472" text-anchor="start">(offline: kept</text>
+<text x="46" y="632" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="400" fill="#5b6472" text-anchor="start">on the phone)</text>
+<path d="M217,600 L239,600" fill="none" stroke="#1e2a3a" stroke-width="1.8" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="240" y="552" width="182" height="96" rx="10" fill="#e4e8ee" stroke="#44546a" stroke-width="1.6"/>
+<text x="252" y="574" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="10.5" font-weight="700" fill="#44546a" text-anchor="start">SERVER</text>
+<text x="252" y="598" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="600" fill="#1e2a3a" text-anchor="start">Quality gate</text>
+<text x="252" y="615" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="400" fill="#5b6472" text-anchor="start">blur · dark · glare</text>
+<path d="M423,600 L445,600" fill="none" stroke="#1e2a3a" stroke-width="1.8" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="446" y="552" width="182" height="96" rx="10" fill="#e4e8ee" stroke="#44546a" stroke-width="1.6"/>
+<text x="458" y="574" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="10.5" font-weight="700" fill="#44546a" text-anchor="start">SERVER</text>
+<text x="458" y="598" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="600" fill="#1e2a3a" text-anchor="start">Local OCR</text>
+<text x="458" y="615" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="400" fill="#5b6472" text-anchor="start">(no third party)</text>
+<path d="M629,600 L651,600" fill="none" stroke="#1e2a3a" stroke-width="1.8" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="652" y="552" width="182" height="96" rx="10" fill="#e4e8ee" stroke="#44546a" stroke-width="1.6"/>
+<text x="664" y="574" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="10.5" font-weight="700" fill="#44546a" text-anchor="start">SERVER</text>
+<text x="664" y="598" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="600" fill="#1e2a3a" text-anchor="start">Black out</text>
+<text x="664" y="615" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="400" fill="#5b6472" text-anchor="start">Aadhaar numbers</text>
+<path d="M835,600 L857,600" fill="none" stroke="#1e2a3a" stroke-width="1.8" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="858" y="552" width="182" height="96" rx="10" fill="#e4e8ee" stroke="#44546a" stroke-width="1.6"/>
+<text x="870" y="574" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="10.5" font-weight="700" fill="#44546a" text-anchor="start">SERVER</text>
+<text x="870" y="598" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="600" fill="#1e2a3a" text-anchor="start">Store masked</text>
+<text x="870" y="615" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="400" fill="#5b6472" text-anchor="start">JPEG only</text>
+<path d="M1041,600 L1063,600" fill="none" stroke="#1e2a3a" stroke-width="1.8" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="1064" y="552" width="182" height="96" rx="10" fill="#e4e8ee" stroke="#44546a" stroke-width="1.6"/>
+<text x="1076" y="574" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="10.5" font-weight="700" fill="#44546a" text-anchor="start">DRAFT</text>
+<text x="1076" y="598" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="600" fill="#1e2a3a" text-anchor="start">Read values</text>
+<text x="1076" y="615" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="400" fill="#5b6472" text-anchor="start">shown to user</text>
+<path d="M1247,600 L1269,600" fill="none" stroke="#1e2a3a" stroke-width="1.8" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="1270" y="552" width="182" height="96" rx="10" fill="#f1e4c7" stroke="#9c6e26" stroke-width="1.6"/>
+<text x="1282" y="574" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="10.5" font-weight="700" fill="#9c6e26" text-anchor="start">USER</text>
+<text x="1282" y="598" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="600" fill="#1e2a3a" text-anchor="start">Confirms or</text>
+<text x="1282" y="615" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="400" fill="#5b6472" text-anchor="start">edits → record</text>
+<text x="40" y="690" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="400" fill="#5b6472" text-anchor="start">If the photo is unclear the user is asked to retake it. Nothing is guessed, and the unmasked original never reaches disk or any AI service.</text>
+<text x="40" y="716" font-family="'Public Sans','DejaVu Sans','Segoe UI',Arial,sans-serif" font-size="12.5" font-weight="400" fill="#5b6472" text-anchor="start">Hosted AI, if allowed, receives the masked image from step 5 — not the original.</text>
+</svg>
