@@ -16,8 +16,7 @@
     "test": "pnpm --filter @repo/shared build && pnpm --filter @repo/api test && pnpm --filter @repo/web check:i18n",
     "typecheck": "pnpm --filter @repo/shared build && pnpm --filter @repo/api typecheck && pnpm --filter @repo/web exec tsc --noEmit",
     "setup:assets": "pnpm --filter @repo/api setup:assets",
-    "start": "concurrently -n \"API,WEB\" -c \"blue,cyan\" \"pnpm --filter @repo/api start\" \"pnpm --filter @repo/web start\"",
-    "ai:check": "pnpm --filter @repo/api ai:check"
+    "start": "concurrently -n \"API,WEB\" -c \"blue,cyan\" \"pnpm --filter @repo/api start\" \"pnpm --filter @repo/web start\""
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

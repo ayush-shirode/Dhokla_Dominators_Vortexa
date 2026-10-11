@@ -18,7 +18,7 @@ import {
 import { config } from '../config.js';
 import { getDb } from '../db/index.js';
 import { h, ok, parse } from '../lib/http.js';
-import { cloudAvailable } from '../services/ai/llm.js';
+import { cloudAvailable } from '../services/ai/claude.js';
 import { pdfLanguages } from '../services/export.js';
 import { ocrCapability } from '../services/ocr.js';
 
