@@ -8,29 +8,28 @@ type ChipLabel = 'Shortfall' | 'Late' | 'Unrecorded' | 'Unclear' | 'Recorded';
 
 const RECORDED = { name: 'Recorded', explanation: 'Evidence is linked and this record is counted.' };
 
-/** Accepts display labels ("Late") or the API's lowercase labels ("late"). */
 export function StatusChip({ label, lang = 'en' }: { label: ChipLabel | OverallLabel | 'recorded'; lang?: 'en' | 'hi' }) {
   const code = label.toLowerCase() as OverallLabel | 'recorded';
   const text = code === 'recorded' ? RECORDED : (LABEL_INFO[code]?.[lang] ?? RECORDED);
   const info = { code, title: text.name, explanation: text.explanation };
 
-  // Strict neutral tones per specification (no alarm red, no sirens, no skull icons)
-  let colorClass = 'bg-stone-200 text-stone-700 border-stone-300';
+  // Styling matching reference design chips (soft pill badges)
+  let colorClass = 'bg-stone-100 text-stone-700 border-stone-200';
   if (info.code === 'shortfall') {
-    colorClass = 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-800';
+    colorClass = 'bg-[#fef2f2] text-[#991b1b] border-[#fecaca] dark:bg-rose-950/40 dark:text-rose-200 dark:border-rose-900';
   } else if (info.code === 'late') {
-    colorClass = 'bg-yellow-100 text-yellow-900 border-yellow-300 dark:bg-yellow-950/60 dark:text-yellow-200 dark:border-yellow-800';
+    colorClass = 'bg-[#fefce8] text-[#854d0e] border-[#fef08a] dark:bg-yellow-950/40 dark:text-yellow-200 dark:border-yellow-900';
   } else if (info.code === 'unrecorded') {
-    colorClass = 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+    colorClass = 'bg-[#fbebee] text-[#9f1239] border-[#fecdd3] dark:bg-pink-950/30 dark:text-pink-200 dark:border-pink-900';
   } else if (info.code === 'unclear') {
-    colorClass = 'bg-stone-100 text-stone-600 border-stone-300 dark:bg-stone-800 dark:text-stone-400 dark:border-stone-700';
+    colorClass = 'bg-[#f5f5f4] text-[#57534e] border-[#e7e5e4] dark:bg-stone-800 dark:text-stone-300 dark:border-stone-700';
   } else if (info.code === 'recorded') {
-    colorClass = 'bg-teal-50 text-teal-800 border-teal-200 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-800';
+    colorClass = 'bg-[#edf7f2] text-[#166534] border-[#bbf7d0] dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-900';
   }
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${colorClass}`}
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border shadow-2xs ${colorClass}`}
       title={info.explanation}
     >
       {info.title}
@@ -64,10 +63,12 @@ export function EvidenceBadge({
 
   return (
     <div className="flex items-center gap-1.5 text-xs text-stone-600 dark:text-stone-300 font-normal">
-      <Icon className="w-3.5 h-3.5 text-stone-500 shrink-0" />
-      <span className="font-medium text-stone-800 dark:text-stone-200">{labels[type]}</span>
+      <div className="w-5 h-5 rounded-md bg-[#244b38]/10 text-[#244b38] dark:text-emerald-400 flex items-center justify-center shrink-0">
+        <Icon className="w-3 h-3" />
+      </div>
+      <span className="font-semibold text-stone-800 dark:text-stone-200">{labels[type]}</span>
       {preview && (
-        <span className="text-stone-500 dark:text-stone-400 truncate max-w-[200px] sm:max-w-[300px]">
+        <span className="text-stone-500 dark:text-stone-400 truncate max-w-[200px] sm:max-w-[260px]">
           &bull; {preview}
         </span>
       )}

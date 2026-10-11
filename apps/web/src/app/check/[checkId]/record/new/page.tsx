@@ -12,7 +12,7 @@ import {
   redactSensitiveIds,
 } from '@repo/shared';
 import type { LocalRecord } from '@/lib/localTypes';
-import { ArrowLeft, Save, AlertCircle, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle, ShieldAlert, Check } from 'lucide-react';
 import { NEUTRALITY_HINT, flaggedTermsText } from '@/lib/neutrality';
 
 export default function RecordFormPage() {
@@ -37,7 +37,6 @@ export default function RecordFormPage() {
     getLocalCheck(checkId).then((chk) => {
       if (chk) {
         setPeriod(chk.period);
-        // Default to today if inside period, else 1st of period
         const today = new Date().toISOString().split('T')[0];
         if (today.startsWith(chk.period)) {
           setDate(today);
@@ -77,14 +76,12 @@ export default function RecordFormPage() {
     e.preventDefault();
     if (saving) return;
 
-    // Check neutrality guard
     const n = checkNeutrality(evidenceContent);
     if (!n.ok) {
       setNeutralityWarning(NEUTRALITY_HINT);
       return;
     }
 
-    // Sensitive ID check & redaction
     const { text: cleanContent, count } = redactSensitiveIds(evidenceContent);
     if (count > 0) {
       setRedactedNote(`We removed ${count} number(s) that looked like an Aadhaar number.`);
@@ -114,20 +111,21 @@ export default function RecordFormPage() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col font-sans pb-24">
+    <div className="min-h-screen bg-[#fbf9f4] dark:bg-[#141716] text-[#1c1917] dark:text-stone-100 flex flex-col font-sans pb-28">
       <Header />
 
-      <main className="flex-1 max-w-xl mx-auto px-4 py-6 w-full space-y-6">
-        <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3">
+      <main className="flex-1 max-w-md mx-auto px-4 py-5 w-full space-y-5">
+        {/* Header Strip with Back Link */}
+        <div className="flex items-center justify-between border-b border-[#eee7db] dark:border-stone-800 pb-3">
           <div className="flex items-center gap-2">
             <button
               onClick={() => router.back()}
-              className="p-1.5 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors"
+              className="p-1.5 rounded-full hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-5 h-5 text-stone-700 dark:text-stone-300" />
             </button>
-            <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
-              {recordId ? 'Edit Distribution Record' : 'Add Distribution Record'}
+            <h2 className="text-base font-extrabold text-[#1c3d2e] dark:text-stone-100">
+              {recordId ? 'Edit Ration Record' : 'Add Ration Record'}
             </h2>
           </div>
           <ListenButton
@@ -136,31 +134,83 @@ export default function RecordFormPage() {
           />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Date */}
+        {/* Quick Nav Chips for Input Modes (Screen 7 top bar) */}
+        <div className="grid grid-cols-4 gap-2">
+          <span className="py-2 text-center text-xs font-bold rounded-xl bg-[#244b38] text-white shadow-xs">
+            Manual
+          </span>
+          <button
+            type="button"
+            onClick={() => router.push(`/check/${checkId}/paste`)}
+            className="py-2 text-center text-xs font-bold rounded-xl bg-white dark:bg-stone-900 border border-[#eee7db] text-stone-600 hover:bg-[#f3eee3]"
+          >
+            SMS
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push(`/check/${checkId}/capture`)}
+            className="py-2 text-center text-xs font-bold rounded-xl bg-white dark:bg-stone-900 border border-[#eee7db] text-stone-600 hover:bg-[#f3eee3]"
+          >
+            Photo
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push(`/check/${checkId}/voice`)}
+            className="py-2 text-center text-xs font-bold rounded-xl bg-white dark:bg-stone-900 border border-[#eee7db] text-stone-600 hover:bg-[#f3eee3]"
+          >
+            Voice
+          </button>
+        </div>
+
+        {/* Form Container Matching Screen 7 */}
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-3xl p-5 shadow-warm space-y-4">
+          {/* Date of Receipt */}
           <div>
-            <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
-              Distribution Date
+            <label className="text-xs font-bold text-stone-700 dark:text-stone-300 block mb-1">
+              Date of receipt *
             </label>
             <input
               type="date"
               value={date}
               max={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded text-stone-900 dark:text-stone-100 font-mono"
+              className="w-full px-3.5 py-2.5 text-xs bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] dark:border-stone-700 rounded-xl text-stone-900 dark:text-stone-100 font-mono font-bold"
               required
             />
             {isOutsidePeriod && (
-              <p className="text-[11px] text-amber-800 dark:text-amber-400 mt-1 font-medium">
+              <p className="text-[11px] text-amber-800 dark:text-amber-400 mt-1 font-semibold">
                 This date is outside period {period} &mdash; it will be marked Late (still counted).
               </p>
             )}
           </div>
 
+          {/* Items Received Chips */}
+          <div>
+            <label className="text-xs font-bold text-stone-700 dark:text-stone-300 block mb-1.5">
+              Items received (commodity)
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {(['rice', 'wheat', 'coarse_grains', 'mixed', 'other'] as const).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCommodity(c)}
+                  className={`py-1.5 px-3 text-xs rounded-full capitalize font-bold transition-all ${
+                    commodity === c
+                      ? 'bg-[#244b38] text-white shadow-xs'
+                      : 'bg-[#fbf9f4] dark:bg-stone-950 text-stone-600 dark:text-stone-400 border border-[#eee7db] hover:border-stone-400'
+                  }`}
+                >
+                  {c.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Quantity in kg */}
           <div>
-            <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
-              Quantity Received (kg)
+            <label className="text-xs font-bold text-stone-700 dark:text-stone-300 block mb-1">
+              Quantity (kg/L) *
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -170,60 +220,36 @@ export default function RecordFormPage() {
                 max="1000"
                 value={quantityKg}
                 onChange={(e) => setQuantityKg(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 text-xl font-mono font-bold bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded text-stone-900 dark:text-stone-100"
+                className="w-full px-3.5 py-2.5 text-xl font-mono font-extrabold bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] dark:border-stone-700 rounded-xl text-[#1c3d2e] dark:text-stone-100"
                 required
               />
-              <span className="text-base font-semibold text-stone-500">kg</span>
+              <span className="text-sm font-bold text-stone-500">kg</span>
             </div>
-            <p className="text-[11px] text-stone-500 mt-1">
+            <p className="text-[10px] text-stone-400 mt-1">
               0 kg is allowed (e.g. a visit where no ration was distributed).
             </p>
           </div>
 
-          {/* Commodity chips */}
+          {/* Evidence Type Tiles */}
           <div>
-            <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
-              Commodity (Optional)
+            <label className="text-xs font-bold text-stone-700 dark:text-stone-300 block mb-1.5">
+              Evidence Type (Principle P3) *
             </label>
-            <div className="grid grid-cols-5 gap-2">
-              {(['rice', 'wheat', 'coarse_grains', 'mixed', 'other'] as const).map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setCommodity(c)}
-                  className={`py-1.5 px-2 text-xs rounded border text-center capitalize font-medium transition-colors ${
-                    commodity === c
-                      ? 'bg-teal-700 text-white border-teal-700'
-                      : 'bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 border-stone-300 dark:border-stone-700'
-                  }`}
-                >
-                  {c.replace('_', ' ')}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Evidence Type */}
-          <div>
-            <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
-              Evidence Type (Principle P3)
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {[
-                { type: 'receipt', label: 'Receipt No.' },
-                { type: 'sms', label: 'SMS text' },
-                { type: 'photo', label: 'Photo' },
-                { type: 'note', label: 'Note' },
-                { type: 'none', label: 'No evidence' },
+                { type: 'receipt', label: 'Receipt / Slip No.' },
+                { type: 'sms', label: 'SMS text message' },
+                { type: 'note', label: 'Visit Note' },
+                { type: 'none', label: 'No evidence (Unrecorded)' },
               ].map((ev) => (
                 <button
                   key={ev.type}
                   type="button"
                   onClick={() => setEvidenceType(ev.type as EvidenceType)}
-                  className={`p-2 text-xs rounded border text-center font-medium transition-all ${
+                  className={`p-2.5 text-xs rounded-xl font-bold transition-all text-left border ${
                     evidenceType === ev.type
-                      ? 'bg-teal-700 text-white border-teal-700 shadow-xs'
-                      : 'bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 border-stone-300 dark:border-stone-700'
+                      ? 'bg-[#244b38] text-white border-[#244b38] shadow-xs'
+                      : 'bg-[#fbf9f4] dark:bg-stone-950 text-stone-700 dark:text-stone-300 border-[#eee7db] hover:bg-stone-100'
                   }`}
                 >
                   {ev.label}
@@ -232,18 +258,18 @@ export default function RecordFormPage() {
             </div>
           </div>
 
-          {/* Evidence Content */}
+          {/* Evidence Content Input */}
           {evidenceType === 'receipt' && (
             <div>
-              <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
-                Slip / Transaction Number
+              <label className="text-xs font-bold text-stone-700 dark:text-stone-300 block mb-1">
+                Receipt / Transaction Number
               </label>
               <input
                 type="text"
                 value={evidenceContent}
                 onChange={(e) => handleContentChange(e.target.value)}
                 placeholder="e.g. TXN-89213"
-                className="w-full px-3 py-2 text-sm bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded font-mono"
+                className="w-full px-3.5 py-2 text-xs bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] dark:border-stone-700 rounded-xl font-mono"
                 required
               />
             </div>
@@ -251,7 +277,7 @@ export default function RecordFormPage() {
 
           {(evidenceType === 'sms' || evidenceType === 'note') && (
             <div>
-              <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
+              <label className="text-xs font-bold text-stone-700 dark:text-stone-300 block mb-1">
                 {evidenceType === 'sms' ? 'SMS Message' : 'Visit Note'}
               </label>
               <textarea
@@ -263,7 +289,7 @@ export default function RecordFormPage() {
                     ? 'Paste the official delivery SMS here'
                     : 'What happened at this visit?'
                 }
-                className="w-full px-3 py-2 text-xs bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded focus:ring-2 focus:ring-teal-600 focus:outline-none"
+                className="w-full px-3.5 py-2 text-xs bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] dark:border-stone-700 rounded-xl focus:ring-2 focus:ring-[#244b38] focus:outline-none"
                 required
               />
               {neutralityWarning && (
@@ -275,39 +301,42 @@ export default function RecordFormPage() {
           )}
 
           {evidenceType === 'none' && (
-            <div className="p-3 bg-stone-200 dark:bg-stone-800/80 rounded border border-stone-300 dark:border-stone-700 text-xs text-stone-700 dark:text-stone-300">
-              <span className="font-semibold block mb-0.5">Note on records without evidence:</span>
-              This record will be saved with an <strong className="text-stone-900 dark:text-stone-100">Unrecorded</strong> chip and will not be counted in summary calculations until evidence is provided.
+            <div className="p-3 bg-[#f7f5ed] rounded-xl border border-[#e5decb] text-xs text-stone-700">
+              <span className="font-bold block mb-0.5">Note:</span>
+              This record will be saved as <strong className="text-rose-800">Unrecorded</strong> and will not be counted in totals until evidence is linked.
             </div>
           )}
 
           {redactedNote && (
-            <p className="text-xs text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950 p-2 rounded border border-teal-200">
+            <p className="text-xs text-[#244b38] bg-[#edf7f2] p-2.5 rounded-xl border border-[#bbf7d0]">
               {redactedNote}
             </p>
           )}
 
           {/* Mark as unclear checkbox */}
-          <div className="pt-2">
+          <div className="pt-1">
             <label className="flex items-start gap-2 text-xs text-stone-700 dark:text-stone-300 cursor-pointer">
               <input
                 type="checkbox"
                 checked={unclear}
                 onChange={(e) => setUnclear(e.target.checked)}
-                className="mt-0.5 rounded text-teal-600"
+                className="mt-0.5 rounded text-[#244b38]"
               />
-              <span>I&apos;m not sure about this amount (will be marked Unclear and not counted)</span>
+              <span>I&apos;m not sure about this amount (mark as Unclear &mdash; not counted)</span>
             </label>
           </div>
 
-          <button
-            type="submit"
-            disabled={saving || !!neutralityWarning}
-            className="w-full py-3 bg-teal-700 hover:bg-teal-800 text-white font-semibold text-xs rounded shadow-xs flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" />
-            <span>Save Distribution Record</span>
-          </button>
+          {/* Save / Confirm Button (Screen 7 footer) */}
+          <div className="pt-2 flex gap-3">
+            <button
+              type="submit"
+              disabled={saving || !!neutralityWarning}
+              className="w-full py-3.5 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-extrabold text-xs rounded-xl shadow-warm flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50"
+            >
+              <Check className="w-4 h-4" />
+              <span>Confirm &amp; Save Record</span>
+            </button>
+          </div>
         </form>
       </main>
 
