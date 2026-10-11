@@ -1,309 +1,282 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { APP_CONFIG, HealthStatus, User } from '@repo/shared';
-import {
-  Server,
-  Layers,
-  Code2,
-  Terminal,
-  Activity,
-  CheckCircle2,
-  AlertCircle,
-  Users,
-  RefreshCw,
-  ExternalLink,
-  Cpu
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Header, BottomNav, ListenButton } from '@/components/Navigation';
+import { getLocalHouseholds, getLocalChecks, seedExampleData, clearExampleData } from '@/lib/db';
+import { Household, Check, formatKg, computeEntitlement } from '@repo/shared';
+import { Plus, ChevronRight, Calendar, Users, ShieldAlert, Sparkles, Trash2 } from 'lucide-react';
 
-export default function Home() {
-  const [apiHealth, setApiHealth] = useState<HealthStatus | null>(null);
-  const [loadingHealth, setLoadingHealth] = useState(false);
-  const [healthError, setHealthError] = useState<string | null>(null);
+export default function HomePage() {
+  const router = useRouter();
+  const [households, setHouseholds] = useState<Household[]>([]);
+  const [checks, setChecks] = useState<Check[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [users, setUsers] = useState<User[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
-
-  const checkApiHealth = async () => {
-    setLoadingHealth(true);
-    setHealthError(null);
+  const loadData = async () => {
+    setLoading(true);
     try {
-      const res = await fetch(`http://localhost:${APP_CONFIG.DEFAULT_API_PORT}${APP_CONFIG.API_PREFIX}/health`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setApiHealth(data.data);
-    } catch (err: unknown) {
-      setHealthError(err instanceof Error ? err.message : 'Failed to connect to API');
-      setApiHealth(null);
+      const hhList = await getLocalHouseholds();
+      const chList = await getLocalChecks();
+      setHouseholds(hhList);
+      setChecks(chList);
     } finally {
-      setLoadingHealth(false);
-    }
-  };
-
-  const fetchUsers = async () => {
-    setLoadingUsers(true);
-    try {
-      const res = await fetch(`http://localhost:${APP_CONFIG.DEFAULT_API_PORT}${APP_CONFIG.API_PREFIX}/users`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setUsers(data.data || []);
-    } catch {
-      // If server is not yet running, display mock example
-      setUsers([]);
-    } finally {
-      setLoadingUsers(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    checkApiHealth();
+    loadData();
   }, []);
 
+  const handleCreateCheck = async (householdId: string) => {
+    const currentPeriod = new Date().toISOString().slice(0, 7); // YYYY-MM
+    // Check if check exists
+    const existing = checks.find((c) => c.householdId === householdId && c.period === currentPeriod);
+    if (existing) {
+      router.push(`/check/${existing.id}`);
+      return;
+    }
+
+    const newCheckId = crypto.randomUUID();
+    const newCheck: Check = {
+      id: newCheckId,
+      householdId,
+      period: currentPeriod,
+      status: 'open',
+    };
+    const { saveLocalCheck } = await import('@/lib/db');
+    await saveLocalCheck(newCheck);
+    router.push(`/check/${newCheckId}`);
+  };
+
+  const handleTryExample = async () => {
+    const { checkId } = await seedExampleData();
+    await loadData();
+    router.push(`/check/${checkId}`);
+  };
+
+  const handleClearExample = async () => {
+    await clearExampleData();
+    await loadData();
+  };
+
+  const hasExample = households.some((h) => h.id === 'example-household-1');
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white">
-      {/* Background decoration */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.18),rgba(255,255,255,0))] pointer-events-none" />
+    <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col font-sans pb-20">
+      <Header />
 
-      {/* Header */}
-      <header className="border-b border-slate-800/80 backdrop-blur-md sticky top-0 z-50 bg-slate-950/70">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/20">
-              ⚡
+      <main className="flex-1 max-w-4xl mx-auto px-4 py-6 w-full space-y-6">
+        {/* Welcome & Primary CTA */}
+        <div className="bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-stone-900 dark:text-stone-100">
+                Monthly Ration Ledger
+              </h2>
+              <ListenButton
+                text="Welcome to RationSaathi. Compare your monthly ration card entitlement with actual received grain based on plain arithmetic and verified evidence."
+                label="Listen"
+              />
             </div>
-            <div>
-              <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                {APP_CONFIG.APP_NAME}
-              </span>
-              <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                Monorepo
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 text-sm">
-            <a
-              href={`http://localhost:${APP_CONFIG.DEFAULT_API_PORT}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors"
-            >
-              API Status
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-            <a
-              href="https://github.com/ayush-shirode/Dhokla_Dominators_Vortexa"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-200 font-medium transition-all hover:bg-slate-800"
-            >
-              GitHub Repo
-            </a>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1 max-w-6xl mx-auto px-6 py-12 w-full space-y-10 relative z-10">
-        {/* Hero Section */}
-        <div className="space-y-4 text-center sm:text-left">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            Monorepo Workspace Configured & Ready
-          </div>
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">
-            Full-Stack Monorepo Architecture
-          </h1>
-          <p className="text-slate-400 text-lg max-w-2xl">
-            Cleanly structured pnpm workspace connecting Next.js (App Router), Express (TypeScript) API, and shared types in a single repository.
-          </p>
-        </div>
-
-        {/* Modules Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Web App */}
-          <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-slate-700 transition-all shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20">
-                <Code2 className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                Port 3000
-              </span>
-            </div>
-            <h3 className="font-bold text-lg text-white mb-1">apps/web</h3>
-            <p className="text-slate-400 text-sm mb-4">
-              Next.js 16 App Router with React 19, Tailwind CSS, and optimized bundle builds.
+            <p className="text-xs text-stone-600 dark:text-stone-400 max-w-xl leading-relaxed">
+              Compare your entitlement against what you received. Every calculation is clear, line-by-line arithmetic linked to your receipts and messages.
             </p>
-            <div className="text-xs text-cyan-400 font-mono bg-cyan-950/30 border border-cyan-900/50 p-2.5 rounded-lg">
-              pnpm --filter @repo/web dev
-            </div>
           </div>
 
-          {/* Backend API */}
-          <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-slate-700 transition-all shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
-                <Server className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                Port 5000
-              </span>
-            </div>
-            <h3 className="font-bold text-lg text-white mb-1">apps/api</h3>
-            <p className="text-slate-400 text-sm mb-4">
-              Node.js Express + TypeScript backend with hot reloading via tsx and modular routing.
-            </p>
-            <div className="text-xs text-indigo-400 font-mono bg-indigo-950/30 border border-indigo-900/50 p-2.5 rounded-lg">
-              pnpm --filter @repo/api dev
-            </div>
-          </div>
-
-          {/* Shared Library */}
-          <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-slate-700 transition-all shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
-                <Layers className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                @repo/shared
-              </span>
-            </div>
-            <h3 className="font-bold text-lg text-white mb-1">packages/shared</h3>
-            <p className="text-slate-400 text-sm mb-4">
-              Common TypeScript types, models, constants, and utilities consumed by both web and api.
-            </p>
-            <div className="text-xs text-amber-400 font-mono bg-amber-950/30 border border-amber-900/50 p-2.5 rounded-lg">
-              pnpm --filter @repo/shared build
-            </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {households.length > 0 ? (
+              <button
+                onClick={() => handleCreateCheck(households[0].id)}
+                className="w-full sm:w-auto px-4 py-2.5 bg-teal-700 hover:bg-teal-800 text-white font-semibold text-xs rounded shadow-xs flex items-center justify-center gap-2 transition-colors"
+              >
+                <Calendar className="w-4 h-4" />
+                <span>Check a month</span>
+              </button>
+            ) : (
+              <Link
+                href="/household/new"
+                className="w-full sm:w-auto px-4 py-2.5 bg-teal-700 hover:bg-teal-800 text-white font-semibold text-xs rounded shadow-xs flex items-center justify-center gap-2 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Set up household</span>
+              </Link>
+            )}
           </div>
         </div>
 
-        {/* Live Inter-Service Connectivity Checker */}
-        <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-900/50 border border-slate-800">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-                <Activity className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">Live Backend Connection Test</h2>
-                <p className="text-slate-400 text-xs">Pings the Express API health endpoint directly from the Next.js client</p>
-              </div>
+        {/* Empty State */}
+        {!loading && households.length === 0 && (
+          <div className="bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg p-8 text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-400 mx-auto flex items-center justify-center font-bold text-xl">
+              🌾
+            </div>
+            <div className="max-w-md mx-auto space-y-1">
+              <h3 className="text-base font-bold text-stone-900 dark:text-stone-100">
+                Start by telling us about your ration card
+              </h3>
+              <p className="text-xs text-stone-500 leading-relaxed">
+                Add your card type (AAY or PHH) and member count. Your ration card number stays securely on this phone and is never sent to any server.
+              </p>
             </div>
 
-            <button
-              onClick={checkApiHealth}
-              disabled={loadingHealth}
-              className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loadingHealth ? 'animate-spin' : ''}`} />
-              Test API Connection
-            </button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <Link
+                href="/household/new"
+                className="w-full sm:w-auto px-5 py-2.5 bg-teal-700 hover:bg-teal-800 text-white font-semibold text-xs rounded shadow-xs"
+              >
+                Add Household
+              </Link>
+              <button
+                onClick={handleTryExample}
+                className="w-full sm:w-auto px-4 py-2 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-medium text-xs rounded transition-colors flex items-center justify-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+                <span>Try with example data</span>
+              </button>
+            </div>
           </div>
+        )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80">
-              <div className="flex items-center justify-between text-xs mb-2">
-                <span className="text-slate-400 font-medium">API Endpoint</span>
-                <span className="font-mono text-slate-500">GET /api/v1/health</span>
-              </div>
-              {apiHealth ? (
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-emerald-400 font-medium text-sm">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Status: {apiHealth.status.toUpperCase()}</span>
-                  </div>
-                  <div className="text-xs text-slate-400 space-y-0.5 font-mono">
-                    <div>Service: {apiHealth.service} (v{apiHealth.version})</div>
-                    <div>Uptime: {Math.round(apiHealth.uptime)}s</div>
-                    <div>Timestamp: {apiHealth.timestamp}</div>
-                  </div>
-                </div>
-              ) : healthError ? (
-                <div className="flex items-start gap-2 text-amber-400 text-xs">
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <div>
-                    <span className="font-medium">Backend not reachable currently</span>
-                    <p className="text-slate-400 mt-1">
-                      Start both apps simultaneously with <code className="text-indigo-300">pnpm dev</code> to test the live connection.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-xs text-slate-400">Pinging backend...</div>
-              )}
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80">
-              <div className="flex items-center justify-between text-xs mb-2">
-                <span className="text-slate-400 font-medium">Shared Model Demo</span>
-                <button
-                  onClick={fetchUsers}
-                  disabled={loadingUsers}
-                  className="text-xs text-indigo-400 hover:underline flex items-center gap-1"
+        {/* Households and their Period Checks */}
+        {households.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">
+                Your Households &amp; Checks
+              </h3>
+              <div className="flex items-center gap-3">
+                {hasExample ? (
+                  <button
+                    onClick={handleClearExample}
+                    className="text-xs text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Clear example data</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleTryExample}
+                    className="text-xs text-teal-700 dark:text-teal-400 hover:underline flex items-center gap-1"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    <span>Try with example data</span>
+                  </button>
+                )}
+                <Link
+                  href="/household/new"
+                  className="text-xs text-teal-700 dark:text-teal-400 font-medium hover:underline flex items-center gap-1"
                 >
-                  <Users className="w-3.5 h-3.5" />
-                  Fetch Users
-                </button>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add another household</span>
+                </Link>
               </div>
+            </div>
 
-              {users.length > 0 ? (
-                <div className="space-y-1.5">
-                  {users.map((u) => (
-                    <div key={u.id} className="text-xs flex items-center justify-between bg-slate-900 p-1.5 rounded border border-slate-800">
-                      <span className="text-slate-200">{u.name}</span>
-                      <span className="text-slate-400 font-mono text-[10px]">{u.email}</span>
+            <div className="grid grid-cols-1 gap-4">
+              {households.map((h) => {
+                const hhChecks = checks
+                  .filter((c) => c.householdId === h.id)
+                  .sort((a, b) => b.period.localeCompare(a.period));
+
+                const { formula, entitledKg } = computeEntitlement(h);
+                const isExample = h.id === 'example-household-1';
+
+                return (
+                  <div
+                    key={h.id}
+                    className="bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg p-5 shadow-xs space-y-4"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-base font-bold text-stone-900 dark:text-stone-100">
+                            {h.label}
+                          </h4>
+                          {isExample && (
+                            <span className="text-[10px] uppercase font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 px-1.5 py-0.5 rounded border border-amber-300">
+                              Example
+                            </span>
+                          )}
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300">
+                            {h.cardType} &bull; {h.members} members
+                          </span>
+                        </div>
+                        <p className="text-xs text-stone-500 font-mono">
+                          Formula: {formula} ({entitledKg} kg/mo)
+                        </p>
+                      </div>
+
+                      <Link
+                        href={`/household/${h.id}/edit`}
+                        className="text-xs text-teal-700 dark:text-teal-400 hover:underline font-medium"
+                      >
+                        Edit Rule
+                      </Link>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-slate-400">
-                  Shared interfaces like <code className="text-amber-300">User</code> and <code className="text-amber-300">ApiResponse&lt;T&gt;</code> guarantee end-to-end type safety between backend and frontend.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
 
-        {/* Quick Commands Guide */}
-        <div className="p-6 rounded-2xl bg-slate-900/30 border border-slate-800/60 space-y-4">
-          <div className="flex items-center gap-2 text-white font-semibold text-sm">
-            <Terminal className="w-4 h-4 text-indigo-400" />
-            <span>Workspace CLI Commands</span>
-          </div>
+                    {/* Checks for this household */}
+                    <div className="pt-2 border-t border-stone-200 dark:border-stone-800 space-y-2">
+                      <div className="flex items-center justify-between text-xs font-semibold text-stone-500">
+                        <span>Monthly Ledger Periods</span>
+                        <button
+                          onClick={() => handleCreateCheck(h.id)}
+                          className="text-teal-700 dark:text-teal-400 hover:underline flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Check current month</span>
+                        </button>
+                      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
-            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-              <span className="text-slate-400">Start full stack (concurrently)</span>
-              <code className="text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-900/50">pnpm dev</code>
-            </div>
-            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-              <span className="text-slate-400">Build all workspace packages</span>
-              <code className="text-indigo-400 bg-indigo-950/30 px-2 py-0.5 rounded border border-indigo-900/50">pnpm build</code>
-            </div>
-            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-              <span className="text-slate-400">Start only frontend</span>
-              <code className="text-cyan-400 bg-cyan-950/30 px-2 py-0.5 rounded border border-cyan-900/50">pnpm dev:web</code>
-            </div>
-            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-              <span className="text-slate-400">Start only backend API</span>
-              <code className="text-amber-400 bg-amber-950/30 px-2 py-0.5 rounded border border-amber-900/50">pnpm dev:api</code>
+                      {hhChecks.length === 0 ? (
+                        <p className="text-xs text-stone-400 py-2 italic">
+                          No months checked yet. Tap &ldquo;Check current month&rdquo; to begin.
+                        </p>
+                      ) : (
+                        <div className="divide-y divide-dashed divide-stone-200 dark:divide-stone-800">
+                          {hhChecks.map((chk) => (
+                            <Link
+                              key={chk.id}
+                              href={`/check/${chk.id}`}
+                              className="flex items-center justify-between py-2.5 px-2 hover:bg-stone-100 dark:hover:bg-stone-800/50 rounded transition-colors group"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="font-mono text-sm font-bold text-stone-800 dark:text-stone-200">
+                                  {chk.period}
+                                </span>
+                                <span
+                                  className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded border ${
+                                    chk.status === 'filed'
+                                      ? 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-950 dark:text-teal-300'
+                                      : chk.status === 'reported'
+                                      ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300'
+                                      : 'bg-stone-200 text-stone-700 border-stone-300 dark:bg-stone-800 dark:text-stone-300'
+                                  }`}
+                                >
+                                  {chk.status === 'filed' ? 'Filed ✓' : chk.status === 'reported' ? 'Report Ready' : 'Open'}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2 text-xs text-stone-400 group-hover:text-teal-700">
+                                <span>Open Ledger</span>
+                                <ChevronRight className="w-4 h-4" />
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </div>
+        )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>{APP_CONFIG.APP_NAME} &bull; Vortexa Hackathon</span>
-          <div className="flex items-center gap-1 text-slate-400">
-            <Cpu className="w-3.5 h-3.5" />
-            <span>Built with Next.js 16, Express, TypeScript &amp; pnpm</span>
-          </div>
-        </div>
-      </footer>
+      <BottomNav />
     </div>
   );
 }
