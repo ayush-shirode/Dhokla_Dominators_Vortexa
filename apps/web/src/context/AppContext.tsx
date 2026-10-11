@@ -45,7 +45,8 @@ interface AppContextType {
   isOnline: boolean;
   syncStatus: 'synced' | 'pending' | 'syncing' | 'offline';
   syncNow: () => Promise<void>;
-  t: (key: string) => string;
+  /** UI text in the current language. `{name}` placeholders are filled from `vars`. */
+  t: (key: string, vars?: Record<string, string | number>) => string;
   speak: (text: string, customLang?: LanguageCode) => void;
   stopSpeaking: () => void;
   isSpeaking: boolean;
@@ -208,7 +209,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const t = (path: string): string => lookup(CATALOGS[lang] ?? en, path) ?? lookup(en, path) ?? path;
+  const t = (path: string, vars?: Record<string, string | number>): string => {
+    const text = lookup(CATALOGS[lang] ?? en, path) ?? lookup(en, path) ?? path;
+    return vars ? text.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m)) : text;
+  };
 
   return (
     <AppContext.Provider

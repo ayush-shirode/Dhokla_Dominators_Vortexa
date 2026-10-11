@@ -15,6 +15,7 @@ import {
   saveLocalCheck,
 } from '@/lib/db';
 import { useApp } from '@/context/AppContext';
+import { TranslatePanel } from '@/components/TranslatePanel';
 import {
   Filing,
   buildReportSnapshot,
@@ -22,6 +23,7 @@ import {
   checkNeutrality,
   stateName,
   type LanguageCode,
+  GRIEVANCE_CATEGORY,
 } from '@repo/shared';
 import { api } from '@/lib/api';
 import type { LocalCheck, LocalHousehold, LocalRecord } from '@/lib/localTypes';
@@ -47,6 +49,11 @@ export default function GrievanceHelperPage() {
   const [filing, setFiling] = useState<Filing | null>(null);
 
   const [description, setDescription] = useState('');
+  /** Language of the description (changes after a confirmed translation). */
+  const [descriptionLang, setDescriptionLang] = useState<LanguageCode>('en');
+  const [languageAdvice, setLanguageAdvice] = useState<string | null>(null);
+  /** True once a translated / edited description came from the server: never overwrite it. */
+  const serverDescription = React.useRef(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [readBackDone, setReadBackDone] = useState(false);
   const [hasSelfRead, setHasSelfRead] = useState(false);
@@ -66,8 +73,11 @@ export default function GrievanceHelperPage() {
       .get(checkId)
       .then((g) => {
         setPortal({ url: g.portal.url, statusUrl: g.portal.statusUrl, channelId: g.portal.channelId });
+        setLanguageAdvice(g.languageAdvice.message);
         if (g.descriptionSource !== 'generated') {
+          serverDescription.current = true;
           setDescription(g.description);
+          setDescriptionLang(g.descriptionLanguage);
         }
       })
       .catch(() => {});
@@ -88,8 +98,8 @@ export default function GrievanceHelperPage() {
                 records: recs,
                 ruleConfirmedAt: h.ruleConfirmedAt || new Date().toISOString(),
               });
-              const desc = generateGrievanceDescription(snapshot, 'en');
-              setDescription(desc);
+              // Offline-generated neutral text, unless the server holds a translated/edited one.
+              if (!serverDescription.current) setDescription(generateGrievanceDescription(snapshot, 'en'));
             });
           }
         });
@@ -130,14 +140,14 @@ District: ${household.district || 'N/A'}
 Ration Card Number: ${household.rationCardNo || 'N/A'}
 FPS Number: ${household.fpsNo || 'N/A'}
 FPS Name: ${household.fpsName || 'N/A'}
-Category: Quantity mismatch under NFSA
+Category: ${GRIEVANCE_CATEGORY.label}
 Problem Description:
 ${description}`;
     await copyToClipboard('all', allText);
   };
 
   const handlePlayReadBack = () => {
-    speak(description, 'en');
+    speak(description, descriptionLang);
     setReadBackDone(true);
   };
 
@@ -335,6 +345,19 @@ ${description}`;
                 </p>
               )}
             </div>
+
+            <TranslatePanel
+              purpose="grievance_description"
+              checkId={checkId}
+              advice={languageAdvice}
+              onApplied={(text, language) => {
+                serverDescription.current = true;
+                setDescription(text);
+                setDescriptionLang(language);
+                setReadBackDone(false);
+                setHasSelfRead(false);
+              }}
+            />
           </div>
         </div>
 

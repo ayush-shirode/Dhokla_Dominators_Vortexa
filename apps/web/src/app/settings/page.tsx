@@ -7,6 +7,7 @@ import { Header, BottomNav, ListenButton } from '@/components/Navigation';
 import { useApp } from '@/context/AppContext';
 import { SUPPORTED_LANGUAGES, LanguageCode } from '@repo/shared';
 import { clearAllLocalData, getDb, getDeviceCredentials } from '@/lib/db';
+import { InstallApp } from '@/components/InstallApp';
 import { api, forgetDeviceToken } from '@/lib/api';
 import {
   Globe,
@@ -137,6 +138,8 @@ export default function SettingsPage() {
         {/* SECTION: MAIN LIST */}
         {activeSection === 'main' && (
           <div className="space-y-4">
+            <InstallApp variant="panel" />
+
             <div className="bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-3xl p-2 shadow-warm divide-y divide-[#eee7db] dark:divide-stone-800">
               {/* Language item */}
               <button

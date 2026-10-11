@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
+// Captures the browser's one-time install event as early as possible.
+import '@/lib/install';
 
 /** Registers the offline service worker (production builds only; dev caching gets in the way). */
 export function PwaRegister() {

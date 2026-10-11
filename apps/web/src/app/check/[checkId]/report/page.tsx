@@ -21,9 +21,12 @@ import {
   formatKg,
   POSSIBLE_CAUSES,
   DISCLAIMER,
+  SUPPORTED_LANGUAGES,
+  type LanguageCode,
   type ReportSnapshot,
 } from '@repo/shared';
-import { api } from '@/lib/api';
+import { api, flushOutbox } from '@/lib/api';
+import { TranslatePanel } from '@/components/TranslatePanel';
 import type { LocalCheck, LocalHousehold, LocalRecord } from '@/lib/localTypes';
 import {
   FileText,
@@ -43,6 +46,7 @@ export default function ReportPage() {
   const [report, setReport] = useState<Report | null>(null);
   const [saving, setSaving] = useState(false);
   const [offlineNotice, setOfflineNotice] = useState<string | null>(null);
+  const [extraTranslations, setExtraTranslations] = useState<LanguageCode[]>([]);
 
   const templateLang = lang === 'hi' ? 'hi' : 'en';
   const causes = POSSIBLE_CAUSES[templateLang];
@@ -68,9 +72,8 @@ export default function ReportPage() {
           }
         });
         getLocalReports(chk.id).then((reps) => {
-          if (reps && reps.length > 0) {
-            setReport(reps[0]);
-          }
+          // Latest saved version
+          if (reps && reps.length > 0) setReport([...reps].sort((a, b) => b.version - a.version)[0]!);
         });
       }
     });
@@ -111,49 +114,71 @@ export default function ReportPage() {
     );
   }
 
+  // A saved report is an immutable server snapshot. If records or the rule changed since,
+  // what is on screen is a new preview until it is saved again.
+  const savedIsCurrent =
+    !!report &&
+    JSON.stringify(report.snapshot.summary.arithmetic) === JSON.stringify(snapshot.summary.arithmetic) &&
+    JSON.stringify(report.snapshot.records.map((r) => [r.id, r.evidenceContent, r.photoId])) ===
+      JSON.stringify(snapshot.records.map((r) => [r.id, r.evidenceContent, r.photoId]));
+
   const handleSaveReport = async () => {
     setSaving(true);
+    setOfflineNotice(null);
     try {
-      const now = new Date().toISOString();
-      let rep: Report;
-
-      try {
-        rep = await api.reports.create(checkId, { language: templateLang });
-      } catch {
-        rep = {
-          id: crypto.randomUUID(),
-          checkId,
-          householdId: household.id,
-          version: (report?.version || 0) + 1,
-          language: templateLang,
-          createdAt: now,
-          contentHash: 'local-audit-hash',
-          snapshot,
-          text: renderReportText(snapshot, templateLang),
-          translations: [],
-        };
-        setOfflineNotice('Report saved on phone (offline).');
-      }
-
+      // The official snapshot (id, version, SHA-256 hash) is made by the server from synced data,
+      // so pending changes are sent first. Offline, nothing "official" is invented.
+      await flushOutbox();
+      const rep = await api.reports.create(checkId, { language: templateLang });
       await saveLocalReport(rep);
       setReport(rep);
-      await saveLocalCheck({ ...check, status: 'reported' });
-      setCheck({ ...check, status: 'reported' });
+      await saveLocalCheck({ ...check, status: check.status === 'filed' ? 'filed' : 'reported' }, false);
+      setCheck({ ...check, status: check.status === 'filed' ? 'filed' : 'reported' });
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      setOfflineNotice(
+        code === 'NEUTRALITY_CHECK_FAILED'
+          ? 'Some notes say who caused a difference. Please edit them to describe only what was received.'
+          : code === 'RULE_NOT_CONFIRMED'
+            ? 'The rule is not confirmed on the server yet. Open the rule, confirm it, and try again.'
+            : 'Saving the official report needs an internet connection. The preview below can still be read aloud and downloaded as text.',
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDownload = () => {
-    const text = renderReportText(snapshot, templateLang);
-    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const downloadBlob = (blob: Blob, name: string) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ration-audit-${check.period}.txt`;
+    a.download = name;
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  /** Text download: the saved report (with id and hash) when current, otherwise the preview. */
+  const handleDownload = () => {
+    const text =
+      savedIsCurrent && report
+        ? renderReportText(report.snapshot, templateLang, { reportId: report.id, version: report.version, contentHash: report.contentHash })
+        : renderReportText(snapshot, templateLang);
+    downloadBlob(new Blob([text], { type: 'text/plain;charset=utf-8' }), `ration-report-${check.period}${savedIsCurrent && report ? `-v${report.version}` : '-preview'}.txt`);
+  };
+
+  const handleExport = async (format: 'pdf' | 'html' | 'txt', language: LanguageCode) => {
+    if (!report) return;
+    try {
+      const blob = await api.reports.export(report.id, format, language);
+      downloadBlob(blob, `ration-report-${check.period}-v${report.version}-${language}.${format}`);
+    } catch {
+      setOfflineNotice('This download needs an internet connection. Use "Download (.txt)" instead.');
+    }
+  };
+
+  const translatedLangs: LanguageCode[] = report
+    ? [...new Set([...report.translations.map((tr) => tr.language), ...extraTranslations])]
+    : [];
 
   const isShortfall = snapshot.summary.status === 'shortfall';
 
@@ -170,9 +195,9 @@ export default function ReportPage() {
               <h2 className="text-base font-extrabold text-[#1c3d2e] dark:text-stone-100">
                 Monthly Audit Report
               </h2>
-              {!report ? (
+              {!savedIsCurrent ? (
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                  Not yet saved
+                  {report ? `Changed since v${report.version}` : 'Not yet saved'}
                 </span>
               ) : (
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#edf7f2] text-[#166534] border border-[#bbf7d0]">
@@ -185,7 +210,7 @@ export default function ReportPage() {
             </p>
           </div>
           <ListenButton
-            text={`Audit report for ${check.period}. Entitlement is ${snapshot.summary.entitlement.kg} kg. Total received is ${snapshot.summary.totals.countedKg} kg. Shortfall is ${snapshot.summary.differenceKg} kg.`}
+            text={`Report for ${check.period}. Entitlement ${formatKg(snapshot.summary.entitlement.kg)}. Received and counted ${formatKg(snapshot.summary.totals.countedKg)}. Difference ${formatKg(Math.abs(snapshot.summary.differenceKg))}.`}
             label="Listen"
           />
         </div>
@@ -223,12 +248,34 @@ export default function ReportPage() {
             </div>
             <div className="flex items-center justify-between pt-1.5 border-t border-[#eee7db] dark:border-stone-800 font-extrabold">
               <span className={isShortfall ? 'text-amber-900' : 'text-stone-800'}>
-                {isShortfall ? 'Difference (Shortfall)' : 'Difference'}
+                {isShortfall ? 'Difference (Shortfall)' : snapshot.summary.status === 'above_entitlement' ? 'Received more than the entitlement' : 'Difference'}
               </span>
               <span className={`font-mono text-base ${isShortfall ? 'text-amber-900' : 'text-stone-800'}`}>
-                {formatKg(snapshot.summary.differenceKg)}
+                {formatKg(Math.abs(snapshot.summary.differenceKg))}
               </span>
             </div>
+          </div>
+
+          {/* Every record with its evidence (Principle 3) */}
+          <div className="space-y-2">
+            <span className="text-[10px] uppercase font-extrabold text-stone-400 block">Records and evidence</span>
+            {snapshot.records.length === 0 && <p className="text-xs text-stone-500">No records for this month.</p>}
+            {snapshot.records.map((r) => (
+              <div key={r.id} className="p-3 rounded-2xl border border-[#eee7db] dark:border-stone-800 text-xs space-y-0.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono font-bold">{r.date}</span>
+                  <span className="font-mono font-extrabold">{formatKg(r.quantityKg)}</span>
+                </div>
+                <p className="text-stone-600 dark:text-stone-400 break-words">
+                  {r.evidenceType === 'none' ? 'No evidence' : `${r.evidenceType.toUpperCase()}${r.evidenceContent ? `: ${r.evidenceContent}` : ''}`}
+                </p>
+                {!r.counted && (
+                  <p className="text-[11px] text-amber-800">
+                    Not counted — {r.exclusionReason === 'unrecorded' ? 'no evidence linked' : 'marked unsure'}
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
 
           {/* Line-by-line arithmetic */}
@@ -263,7 +310,12 @@ export default function ReportPage() {
 
           {/* Action Buttons: Save / Download */}
           <div className="pt-2 flex flex-col gap-2">
-            {!report ? (
+            {savedIsCurrent && report && (
+              <p className="text-[11px] text-stone-500 font-mono break-all">
+                Official report v{report.version} · hash {report.contentHash.slice(0, 12)}…
+              </p>
+            )}
+            {!savedIsCurrent && (
               <button
                 type="button"
                 onClick={handleSaveReport}
@@ -271,29 +323,61 @@ export default function ReportPage() {
                 className="w-full min-h-[48px] py-3.5 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-extrabold text-xs rounded-2xl shadow-warm flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50"
               >
                 <FileText className="w-4 h-4" />
-                <span>Save This Report</span>
+                <span>{saving ? 'Saving…' : report ? 'Save new version' : 'Save This Report'}</span>
               </button>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={handleDownload}
+                className="min-h-[48px] py-3 px-3 bg-[#fbf9f4] hover:bg-[#f3eee3] border border-[#eee7db] text-[#1c3d2e] font-extrabold text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <Download className="w-4 h-4 text-[#244b38]" />
+                <span>Download (.txt)</span>
+              </button>
+              {savedIsCurrent ? (
                 <button
                   type="button"
-                  onClick={handleDownload}
+                  onClick={() => handleExport('pdf', templateLang)}
                   className="min-h-[48px] py-3 px-3 bg-[#fbf9f4] hover:bg-[#f3eee3] border border-[#eee7db] text-[#1c3d2e] font-extrabold text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-colors"
                 >
                   <Download className="w-4 h-4 text-[#244b38]" />
-                  <span>Download (.txt)</span>
+                  <span>Download PDF</span>
                 </button>
-
-                <Link
-                  href={`/check/${checkId}/grievance`}
-                  className="min-h-[48px] py-3 px-3 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-extrabold text-xs rounded-2xl shadow-warm flex items-center justify-center gap-1.5 transition-all text-center"
-                >
-                  <span>Proceed to Grievance &rarr;</span>
-                </Link>
-              </div>
+              ) : (
+                <span />
+              )}
+            </div>
+            {savedIsCurrent && (
+              <Link
+                href={`/check/${checkId}/grievance`}
+                className="min-h-[48px] py-3 px-3 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-extrabold text-xs rounded-2xl shadow-warm flex items-center justify-center gap-1.5 transition-all text-center"
+              >
+                <span>Proceed to Grievance &rarr;</span>
+              </Link>
             )}
           </div>
         </div>
+
+        {savedIsCurrent && report && (
+          <div className="space-y-2">
+            <TranslatePanel purpose="report" reportId={report.id} onApplied={(_, l) => setExtraTranslations((p) => [...p, l])} />
+            {translatedLangs.length > 0 && (
+              <div className="text-xs bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-2xl p-3 space-y-1.5">
+                <span className="font-extrabold block">Confirmed translations</span>
+                {translatedLangs.map((l) => (
+                  <div key={l} className="flex items-center justify-between gap-2">
+                    <span>{SUPPORTED_LANGUAGES.find((x) => x.code === l)?.nativeName ?? l}</span>
+                    <span className="flex gap-3">
+                      <button type="button" onClick={() => handleExport('html', l)} className="underline">Printable page</button>
+                      <button type="button" onClick={() => handleExport('txt', l)} className="underline">Text</button>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       <BottomNav />

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
+import { InstallApp } from '@/components/InstallApp';
 import { useRouter } from 'next/navigation';
 import { Header, BottomNav, ListenButton } from '@/components/Navigation';
 import { getLocalHouseholds, getLocalChecks, seedExampleData, clearExampleData } from '@/lib/db';
@@ -93,6 +94,8 @@ export default function HomePage() {
       <Header />
 
       <main className="flex-1 max-w-md mx-auto px-4 py-5 w-full space-y-5">
+        <InstallApp />
+
         {/* Rule confirmed toast / notice */}
         {showConfirmedNotice && (
           <div className="p-3.5 bg-[#edf7f2] border border-[#bbf7d0] text-[#166534] rounded-2xl text-xs font-bold flex items-center justify-between shadow-2xs">
