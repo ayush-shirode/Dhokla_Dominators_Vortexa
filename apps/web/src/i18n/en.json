@@ -1,0 +1,42 @@
+{
+  "appName": "RationSaathi",
+  "tagline": "Transparent, evidence-linked ration entitlement companion",
+  "nav": {
+    "home": "Home",
+    "help": "Help & Explainer",
+    "settings": "Settings",
+    "directory": "Helplines & Portals"
+  },
+  "steps": {
+    "rule": "1 Rule",
+    "records": "2 Records",
+    "report": "3 Report",
+    "grievance": "4 Grievance"
+  },
+  "sync": {
+    "synced": "Backed up",
+    "pending": "Saved on this phone",
+    "offline": "Offline mode"
+  },
+  "actions": {
+    "listen": "Listen",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "copy": "Copy",
+    "copied": "Copied ✓",
+    "back": "Back",
+    "next": "Next",
+    "checkMonth": "Check a month",
+    "addRecord": "Add record",
+    "makeReport": "Make report"
+  },
+  "common": {
+    "notLegalAdvice": "RationSaathi is an informational helper and not legal advice.",
+    "phoneLock": "Stays on this phone",
+    "exampleData": "Try with example data",
+    "clearExample": "Clear example"
+  }
+}
