@@ -1,0 +1,21 @@
+{
+  "name": "dhokla-dominators-vortexa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo setup with Next.js frontend, Express backend, and shared TypeScript library",
+  "scripts": {
+    "dev": "concurrently -n \"API,WEB\" -c \"blue,cyan\" \"pnpm --filter @repo/api dev\" \"pnpm --filter @repo/web dev\"",
+    "dev:web": "pnpm --filter @repo/web dev",
+    "dev:api": "pnpm --filter @repo/api dev",
+    "build": "pnpm --filter @repo/shared build && pnpm --filter @repo/api build && pnpm --filter @repo/web build",
+    "build:shared": "pnpm --filter @repo/shared build",
+    "build:api": "pnpm --filter @repo/api build",
+    "build:web": "pnpm --filter @repo/web build",
+    "lint": "pnpm -r --if-present lint",
+    "clean": "pnpm -r exec rm -rf node_modules dist .next"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "packageManager": "pnpm@12.9.1"
+}
