@@ -1,101 +1,50 @@
-# Dhokla Dominators - Vortexa Monorepo
+# RationSaathi
 
-A production-ready full-stack monorepo built with **pnpm workspaces**, featuring **Next.js 16 (App Router)** for the frontend, **Express + TypeScript** for the backend API, and a shared **TypeScript library** for end-to-end type safety.
+**A public distribution entitlement & dispute assistant** (Domain 6 · Public Systems & Civic Technology · P-01).
 
----
+RationSaathi helps a ration-card holder compare what they are entitled to under India's National Food Security Act with what they actually received, with every figure tied to evidence. It produces a strictly neutral report and prepares a grievance that **they file themselves** on the official portal. It never decides why a difference exists, never accuses anyone, and never submits anything on the user's behalf.
 
-## 🏗️ Repository Architecture
+| Document | For |
+|---|---|
+| [docs/PLAN.md](docs/PLAN.md) | Idea analysis, architecture, how each core principle is enforced, work plan, open items |
+| [docs/FRONTEND_SPEC.md](docs/FRONTEND_SPEC.md) | Frontend build spec: screens, flows, rules, full API reference |
+| [apps/api/README.md](apps/api/README.md) | Backend setup, environment, privacy & AI data flows |
+
+## Stack
+
+pnpm monorepo:
 
 ```
-.
-├── apps/
-│   ├── web/                     # Next.js 16 (App Router + React 19 + Tailwind CSS)
-│   │   ├── src/
-│   │   │   └── app/             # App router pages & components
-│   │   ├── next.config.ts
-│   │   └── package.json
-│   │
-│   └── api/                     # Node.js Express + TypeScript backend
-│       ├── src/
-│       │   ├── routes/          # Modular API routes (/health, /users, etc.)
-│       │   └── index.ts         # Server entrypoint
-│       ├── .env.example
-│       ├── tsconfig.json
-│       └── package.json
-│
-├── packages/
-│   └── shared/                  # Common TypeScript types, interfaces & utils
-│       ├── src/
-│       │   └── index.ts         # Shared ApiResponse, User, HealthStatus, APP_CONFIG
-│       ├── tsconfig.json
-│       └── package.json
-│
-├── pnpm-workspace.yaml          # pnpm workspace definition
-├── package.json                 # Monorepo root scripts & dev dependencies
-└── .gitignore                   # Multi-package ignore rules
+apps/web         Next.js 16 + React 19 + Tailwind 4 — offline-first PWA (mobile-first)
+apps/api         Express + TypeScript + SQLite (node:sqlite) — REST API on :5000
+packages/shared  @repo/shared — types, deterministic entitlement engine, neutral report/grievance
+                 templates (EN/HI), neutrality guard, Aadhaar redaction, offline extractors, FAQ,
+                 typed API client. Runs identically in the browser (offline) and on the server.
 ```
 
----
+Why this stack: one TypeScript contract across client and server, and the arithmetic engine runs offline in the browser (Spec §5.7). Local tesseract OCR masks Aadhaar numbers without any third-party call. Claude (`claude-opus-5-5`) is used for opt-in AI reading, translation and help, always returning drafts.
 
-## ⚡ Quick Start
+## Quick start
 
-### 1. Prerequisites
-- **Node.js**: `v20+` (Tested on `v22.22.2`)
-- **pnpm**: `v9+` / `v12+` (Run `npm install -g pnpm` if not installed)
-
-### 2. Install Dependencies
 ```bash
 pnpm install
+pnpm setup:assets                       # OCR models (eng+hin) + PDF fonts; needs `tesseract` for OCR
+cp apps/api/.env.example apps/api/.env  # add ANTHROPIC_API_KEY to enable cloud AI (optional)
+pnpm build:shared
+pnpm dev                                # API http://localhost:5000/api/v1 · Web http://localhost:3000
+pnpm test                               # backend + engine tests
 ```
 
-### 3. Run Development Servers
-Start both the Frontend and Backend concurrently with one command:
-```bash
-pnpm dev
-```
-- **Web App**: [http://localhost:3000](http://localhost:3000)
-- **API Server**: [http://localhost:5000](http://localhost:5000)
-- **API Health Check**: [http://localhost:5000/api/v1/health](http://localhost:5000/api/v1/health)
+Node ≥ 22.13 is required.
 
----
+## Core principles (enforced in code)
+1. The entitlement rule is explicit and user-confirmed.
+2. Arithmetic never depends on AI.
+3. Every record is evidence-linked.
+4. AI output is always a draft that the user confirms.
+5. Labels (Shortfall / Late / Unrecorded / Unclear) describe data, not causes.
+6. Report language is strictly neutral.
+7. No automatic submission to government systems.
+8. No farm-to-shop supply-chain tracing.
 
-## 🛠️ Workspace Commands
-
-| Command | Description |
-| :--- | :--- |
-| `pnpm dev` | Start both frontend & backend concurrently |
-| `pnpm dev:web` | Start only the Next.js frontend on port 3000 |
-| `pnpm dev:api` | Start only the Express API on port 5000 (hot reload with `tsx`) |
-| `pnpm build` | Build all packages (`@repo/shared`, `@repo/api`, `@repo/web`) |
-| `pnpm build:shared` | Compile the shared package TypeScript definitions |
-| `pnpm build:api` | Build the Express API to `apps/api/dist` |
-| `pnpm build:web` | Build the Next.js production bundle |
-| `pnpm clean` | Remove `node_modules`, `dist`, and `.next` build caches |
-
----
-
-## 📦 Shared Library (`@repo/shared`)
-
-Both `apps/web` and `apps/api` import directly from `@repo/shared`:
-
-```typescript
-import { APP_CONFIG, ApiResponse, HealthStatus, User } from '@repo/shared';
-```
-
-Any data models, validations, constants, or types defined in `packages/shared` are automatically synchronized and typed across the entire stack.
-
----
-
-## 🚀 Environment Configuration
-
-For backend environment variables, copy `.env.example` in `apps/api`:
-```bash
-cp apps/api/.env.example apps/api/.env
-```
-
-Default variables:
-```env
-PORT=5000
-NODE_ENV=development
-FRONTEND_URL=http://localhost:3000
-```
+*Not legal advice. The grievance-channel directory is unverified and must be reviewed before production use.*

@@ -1,65 +1,44 @@
 /**
- * Common shared types, interfaces, constants, and utilities for @repo/shared
+ * @repo/shared — RationSaathi domain types, deterministic engine, neutral templates,
+ * privacy guards, offline extractors, static data and the typed API client.
+ *
+ * Everything here is dependency-free and safe to run in the browser (offline) and on the server.
  */
+export * from './types.js';
+export * from './constants.js';
+export * from './engine.js';
+export * from './guards.js';
+export * from './report.js';
+export * from './extract.js';
+export * from './faq.js';
+export * from './api-client.js';
 
-// Shared API Response structure
-export interface ApiResponse<T = unknown> {
-  success: boolean;
-  message?: string;
-  data?: T;
-  error?: string;
+/** Monorepo-wide config (kept from the original scaffold). */
+export const APP_CONFIG = {
+  APP_NAME: 'RationSaathi',
+  DEFAULT_API_PORT: 5000,
+  DEFAULT_WEB_PORT: 3000,
+  API_PREFIX: '/api/v1',
+} as const;
+
+/** Liveness payload returned by GET /health. */
+export interface HealthStatus {
+  status: 'ok' | 'degraded' | 'error';
+  uptime: number;
   timestamp: string;
+  version: string;
+  db: 'ok' | 'error';
+  /** @deprecated scaffold field, kept so the original demo page still compiles. */
+  service?: string;
+  /** @deprecated scaffold field. */
+  environment?: string;
 }
 
-// User model
+/** @deprecated Scaffold demo type; RationSaathi has no user accounts (devices only). */
 export interface User {
   id: string;
   name: string;
   email: string;
   role: 'admin' | 'user' | 'guest';
   createdAt: string;
-}
-
-// Health check model
-export interface HealthStatus {
-  status: 'ok' | 'degraded' | 'error';
-  uptime: number;
-  timestamp: string;
-  version: string;
-  service: string;
-  environment: string;
-}
-
-// Project info
-export interface ProjectInfo {
-  name: string;
-  description: string;
-  version: string;
-}
-
-// Application Constants
-export const APP_CONFIG = {
-  APP_NAME: 'Dhokla Dominators - Vortexa',
-  DEFAULT_API_PORT: 5000,
-  DEFAULT_WEB_PORT: 3000,
-  API_PREFIX: '/api/v1',
-} as const;
-
-// Helper utilities
-export function createSuccessResponse<T>(data: T, message = 'Success'): ApiResponse<T> {
-  return {
-    success: true,
-    message,
-    data,
-    timestamp: new Date().toISOString(),
-  };
-}
-
-export function createErrorResponse(error: string, message = 'Error'): ApiResponse<never> {
-  return {
-    success: false,
-    message,
-    error,
-    timestamp: new Date().toISOString(),
-  };
 }

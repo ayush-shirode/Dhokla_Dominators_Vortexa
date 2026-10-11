@@ -1,8 +1,8 @@
 {
-  "name": "dhokla-dominators-vortexa",
+  "name": "rationsaathi",
   "version": "1.0.0",
   "private": true,
-  "description": "Monorepo setup with Next.js frontend, Express backend, and shared TypeScript library",
+  "description": "RationSaathi \u2014 PDS entitlement & dispute assistant (Next.js PWA + Express API + shared deterministic engine)",
   "scripts": {
     "dev": "concurrently -n \"API,WEB\" -c \"blue,cyan\" \"pnpm --filter @repo/api dev\" \"pnpm --filter @repo/web dev\"",
     "dev:web": "pnpm --filter @repo/web dev",
@@ -12,7 +12,10 @@
     "build:api": "pnpm --filter @repo/api build",
     "build:web": "pnpm --filter @repo/web build",
     "lint": "pnpm -r --if-present lint",
-    "clean": "pnpm -r exec rm -rf node_modules dist .next"
+    "clean": "pnpm -r exec rm -rf node_modules dist .next",
+    "test": "pnpm --filter @repo/shared build && pnpm --filter @repo/api test",
+    "typecheck": "pnpm --filter @repo/shared build && pnpm --filter @repo/api typecheck",
+    "setup:assets": "pnpm --filter @repo/api setup:assets"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
