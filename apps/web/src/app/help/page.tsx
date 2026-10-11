@@ -1,22 +1,29 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Header, BottomNav, ListenButton } from '@/components/Navigation';
 import { FAQ, CAUSE_REDIRECT, isCauseQuestion, matchFaq, checkNeutrality } from '@repo/shared';
 import { api } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
-import { Send, Volume2, HelpCircle, Bot, Sparkles } from 'lucide-react';
+import { Send, Volume2, ArrowLeft, Shield } from 'lucide-react';
 
 interface ChatMsg {
   id: string;
   sender: 'user' | 'assistant';
   text: string;
   source?: 'faq' | 'ai' | 'guardrail';
+  formula?: {
+    text: string;
+    source: string;
+    verified: string;
+  };
 }
 
 export function HelpPageContent() {
-  const { speak, lang, capabilities, aiConsent, requestCloudConsent } = useApp();
-  const [aiOfferFor, setAiOfferFor] = useState<string | null>(null);
+  const router = useRouter();
+  const { speak, lang, capabilities, aiConsent, setAiConsent } = useApp();
+  const [showConsentModal, setShowConsentModal] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       id: 'welcome',
@@ -29,159 +36,206 @@ export function HelpPageContent() {
 
   const t = (x: { en: string; hi: string }) => (lang === 'hi' ? x.hi : x.en);
 
-  const handleSend = async (textToSend?: string, forceCloud = false) => {
+  const handleSend = async (textToSend?: string, allowCloudOverride?: boolean) => {
     const q = (textToSend || input).trim();
     if (!q) return;
 
-    setAiOfferFor(null);
-    if (!forceCloud) {
+    if (!allowCloudOverride) {
       const userMsg: ChatMsg = { id: crypto.randomUUID(), sender: 'user', text: q };
       setMessages((prev) => [...prev, userMsg]);
     }
     if (!textToSend) setInput('');
-    const add = (text: string, source: ChatMsg['source']) =>
-      setMessages((prev) => [...prev, { id: crypto.randomUUID(), sender: 'assistant', text, source }]);
 
-    // Scope guardrail (Spec §5.6): never discuss why a specific difference happened or who is to blame.
+    const add = (text: string, source: ChatMsg['source'], formula?: ChatMsg['formula']) =>
+      setMessages((prev) => [...prev, { id: crypto.randomUUID(), sender: 'assistant', text, source, formula }]);
+
+    // Guardrail: never assign blame or discuss corrupt/scam causes
     if (isCauseQuestion(q) || !checkNeutrality(q).ok) {
       add(t(CAUSE_REDIRECT), 'guardrail');
       return;
     }
 
-    // Online: the server answers from the FAQ first and applies the same guardrails.
-    // AI answers only with consent ("Always allow" in Settings, or a one-off yes).
+    const allowCloud = allowCloudOverride ?? (capabilities.cloudAi && aiConsent.cloudAssist);
+
     try {
-      const allowCloud = forceCloud || (capabilities.cloudAi && aiConsent.cloudAssist);
       const reply = await api.ai.chat({ messages: [{ role: 'user', content: q }], language: lang, allowCloud });
       add(reply.reply, reply.source === 'ai' ? 'ai' : reply.source === 'guardrail' ? 'guardrail' : 'faq');
-      if (reply.source === 'fallback' && capabilities.cloudAi && !allowCloud) setAiOfferFor(q);
+      if (reply.source === 'fallback' && capabilities.cloudAi && !allowCloud) {
+        setShowConsentModal(q);
+      }
       return;
     } catch {
-      /* offline: answer locally */
+      // Offline fallback
     }
 
     const matched = matchFaq(q, lang);
-    add(
-      matched
-        ? t(matched.entry.answer)
-        : lang === 'hi'
+    if (matched) {
+      add(t(matched.entry.answer), 'faq');
+    } else {
+      add(
+        lang === 'hi'
           ? 'मैं राशनसाथी के इस्तेमाल और शिकायत की प्रक्रिया से जुड़े सवालों के जवाब दे सकता हूँ। नीचे दिए सवालों में से कोई चुनें।'
           : 'I can answer questions about how RationSaathi works and the grievance process. Try one of the questions below.',
-      'faq',
-    );
+        'faq',
+      );
+    }
   };
 
-  const askAi = async () => {
-    if (!aiOfferFor) return;
-    const q = aiOfferFor;
-    if (await requestCloudConsent('cloudAssist')) await handleSend(q, true);
+  const handleConsentChoice = (choice: 'once' | 'always' | 'cancel') => {
+    const q = showConsentModal;
+    setShowConsentModal(null);
+    if (choice === 'once' && q) {
+      handleSend(q, true);
+    } else if (choice === 'always' && q) {
+      setAiConsent({ ...aiConsent, cloudAssist: true });
+      handleSend(q, true);
+    }
   };
+
+  const quickPills = [
+    'What is my monthly entitlement?',
+    'What does Unrecorded mean?',
+    'What does Unclear mean?',
+    'What does a DGRO officer do?',
+    'How do I file my grievance?',
+  ];
 
   return (
-    <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col font-sans pb-24">
+    <div className="min-h-screen bg-[#fbf9f4] dark:bg-[#141716] text-[#1c1917] dark:text-stone-100 flex flex-col font-sans pb-28">
       <Header />
 
-      <main className="flex-1 max-w-2xl mx-auto px-4 py-6 w-full space-y-5">
-        <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3">
-          <div className="space-y-0.5">
-            <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
-              Plain-Language Explainer &amp; FAQ
+      <main className="flex-1 max-w-md mx-auto px-4 py-5 w-full flex flex-col space-y-4">
+        {/* Top Header */}
+        <div className="flex items-center justify-between border-b border-[#eee7db] dark:border-stone-800 pb-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.back()}
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+              title="Go back"
+            >
+              <ArrowLeft className="w-5 h-5 text-stone-700 dark:text-stone-300" />
+            </button>
+            <h2 className="text-base font-extrabold text-[#1c3d2e] dark:text-stone-100">
+              Plain-Language Assistant
             </h2>
-            <p className="text-xs text-stone-500">
-              Instant answers about NFSA rules, ledger terms, and grievance steps.
-            </p>
           </div>
           <ListenButton
-            text="Help and explainer page. Tap quick question chips or type a question to get instant plain-language explanations."
+            text="RationSaathi plain-language assistant. Ask questions about rules, ledger labels, or grievance filing steps."
             label="Listen"
           />
         </div>
 
-        {aiOfferFor && (
-          <div className="p-3 rounded border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-xs flex items-center justify-between gap-3">
-            <span>No built-in answer matched. Ask the AI assistant? It explains process only.</span>
-            <button type="button" onClick={askAi} className="px-3 py-1.5 bg-teal-700 text-white rounded font-medium shrink-0">
-              Ask AI
-            </button>
+        {/* 3-CHOICE CLOUD AI CONSENT MODAL */}
+        {showConsentModal && (
+          <div className="p-4 rounded-3xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 text-xs space-y-3 shadow-warm">
+            <div className="flex items-center gap-2 font-extrabold text-amber-900">
+              <Shield className="w-4 h-4 text-amber-700" />
+              <span>Allow Cloud Assistance for this Question?</span>
+            </div>
+            <p className="text-amber-800 leading-relaxed">
+              No local answer matched. Would you like to consult the cloud assistant for procedural assistance? ID numbers are always blacked out before sending.
+            </p>
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => handleConsentChoice('once')}
+                className="min-h-[44px] py-2 px-2 bg-[#244b38] text-white rounded-xl font-extrabold text-[11px] text-center"
+              >
+                Send once
+              </button>
+              <button
+                type="button"
+                onClick={() => handleConsentChoice('always')}
+                className="min-h-[44px] py-2 px-2 bg-white border border-[#244b38] text-[#244b38] rounded-xl font-extrabold text-[11px] text-center"
+              >
+                Always allow
+              </button>
+              <button
+                type="button"
+                onClick={() => handleConsentChoice('cancel')}
+                className="min-h-[44px] py-2 px-2 bg-stone-200 text-stone-700 rounded-xl font-bold text-[11px] text-center"
+              >
+                No, I&apos;ll type it
+              </button>
+            </div>
           </div>
         )}
 
-        {/* Quick Question Chips */}
-        <div>
-          <span className="text-[10px] uppercase font-bold text-stone-500 block mb-1.5">
-            Quick Questions:
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            {FAQ.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => handleSend(t(f.question))}
-                className="px-2.5 py-1 text-xs bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 hover:border-teal-600 rounded-full text-stone-700 dark:text-stone-300 font-medium transition-colors"
-              >
-                {t(f.question)}
-              </button>
-            ))}
-          </div>
+        {/* Suggestion Chips */}
+        <div className="overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none flex gap-1.5">
+          {quickPills.map((p, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleSend(p)}
+              className="min-h-[40px] whitespace-nowrap px-3.5 py-1.5 text-xs bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 hover:border-[#244b38] rounded-full text-stone-700 dark:text-stone-300 font-bold transition-colors shadow-2xs active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+            >
+              {p}
+            </button>
+          ))}
         </div>
 
-        {/* Chat Stream */}
-        <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg p-4 shadow-xs min-h-[360px] flex flex-col justify-between space-y-4">
-          <div className="space-y-3 overflow-y-auto max-h-[460px] pr-1">
+        {/* Chat Stream Window */}
+        <div className="flex-1 bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-3xl p-4 shadow-warm flex flex-col justify-between min-h-[360px] space-y-4">
+          <div className="space-y-4 overflow-y-auto max-h-[440px] pr-1">
             {messages.map((m) => {
               const isUser = m.sender === 'user';
               return (
                 <div
                   key={m.id}
-                  className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-1`}
+                  className={`flex items-start gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
                 >
-                  <div
-                    className={`max-w-[85%] p-3 rounded-lg text-xs leading-relaxed ${
-                      isUser
-                        ? 'bg-teal-700 text-white rounded-br-none'
-                        : 'bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100 rounded-bl-none border border-stone-200 dark:border-stone-700'
-                    }`}
-                  >
-                    <p>{m.text}</p>
-                  </div>
-
                   {!isUser && (
-                    <div className="flex items-center gap-2 text-[10px] text-stone-400">
-                      {m.source === 'ai' && (
-                        <span className="bg-stone-200 dark:bg-stone-700 px-1.5 py-0.2 rounded font-medium">
-                          AI answer &bull; process explainer
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => speak(m.text)}
-                        className="hover:text-teal-700 flex items-center gap-0.5"
-                      >
-                        <Volume2 className="w-3 h-3" />
-                        <span>Listen</span>
-                      </button>
+                    <div className="w-8 h-8 rounded-full bg-[#edf7f2] dark:bg-emerald-950/60 text-[#244b38] dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs mt-1">
+                      🌾
                     </div>
                   )}
+
+                  <div className={`space-y-1.5 max-w-[85%] ${isUser ? 'items-end' : 'items-start'}`}>
+                    <div
+                      className={`p-3.5 rounded-2xl text-xs leading-relaxed ${
+                        isUser
+                          ? 'bg-[#244b38] text-white rounded-br-xs shadow-xs font-medium'
+                          : 'bg-[#fbf9f4] dark:bg-stone-950 text-stone-900 dark:text-stone-100 rounded-tl-xs border border-[#eee7db] dark:border-stone-800'
+                      }`}
+                    >
+                      <p>{m.text}</p>
+                    </div>
+
+                    {!isUser && (
+                      <div className="flex items-center gap-2 text-[10px] text-stone-400 px-1">
+                        <button
+                          type="button"
+                          onClick={() => speak(m.text)}
+                          className="min-h-[36px] hover:text-[#244b38] flex items-center gap-1 font-bold"
+                        >
+                          <Volume2 className="w-3.5 h-3.5" />
+                          <span>Listen</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
           </div>
 
           {/* Input Bar */}
-          <div className="pt-3 border-t border-stone-200 dark:border-stone-800 flex items-center gap-2">
+          <div className="pt-3 border-t border-[#eee7db] dark:border-stone-800 flex items-center gap-2">
             <input
               type="text"
-              placeholder="Ask a question about your ration..."
+              placeholder="Ask a question about your ration rules..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              className="flex-1 px-3 py-2 text-xs bg-stone-50 dark:bg-stone-950 border border-stone-300 dark:border-stone-700 rounded focus:outline-none focus:ring-2 focus:ring-teal-600"
+              className="flex-1 min-h-[48px] px-4 py-2.5 text-xs bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#244b38] font-medium"
             />
             <button
               type="button"
               onClick={() => handleSend()}
               disabled={!input.trim()}
-              className="p-2 bg-teal-700 hover:bg-teal-800 text-white rounded transition-colors disabled:opacity-50"
+              className="min-h-[48px] min-w-[48px] bg-[#244b38] hover:bg-[#1b3a2b] text-white rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 shrink-0 shadow-xs focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+              title="Send question"
             >
               <Send className="w-4 h-4" />
             </button>

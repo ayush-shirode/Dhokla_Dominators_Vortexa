@@ -1,26 +1,75 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* 3 Distinct Surface Hierarchy */
+  --outer-bg: #E9EDE4;      /* Sage grey · Desktop / outer page sides */
+  --base-bg: #FAF8F1;       /* Warm ivory · Main central app content area */
+  --card-bg: #FFFFFF;       /* White · Form cards */
+  --card-border: #E8E5DD;   /* Warm grey subtle border */
+  
+  --foreground: #1c1917;
+  --forest-primary: #244b38;
+  --forest-hover: #1b3a2b;
+  --forest-light: #edf7f2;
+  --forest-border: #bbf7d0;
+  
+  --amber-warm: #d97706;
+  --gold-warm: #fef3c7;
 }
 
 @theme inline {
-  --color-background: var(--background);
+  --color-outer-bg: var(--outer-bg);
+  --color-base-bg: var(--base-bg);
+  --color-card-bg: var(--card-bg);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --outer-bg: #111413;
+    --base-bg: #181d1a;
+    --card-bg: #202622;
+    --card-border: #2e3732;
+    --foreground: #f5f5f4;
+    --forest-primary: #2d5a43;
+    --forest-hover: #3b7357;
+    --forest-light: #162a20;
+    --forest-border: #244835;
   }
 }
 
 body {
-  background: var(--background);
+  background-color: var(--outer-bg);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Surface classes */
+.bg-outer {
+  background-color: var(--outer-bg);
+}
+
+.bg-base {
+  background-color: var(--base-bg);
+}
+
+.bg-card {
+  background-color: var(--card-bg);
+}
+
+.border-subtle {
+  border-color: var(--card-border);
+}
+
+.shadow-subtle {
+  box-shadow: 0 1px 3px 0 rgba(44, 40, 32, 0.04), 0 1px 2px -1px rgba(44, 40, 32, 0.02);
+}
+
+.shadow-warm {
+  box-shadow: 0 2px 8px -2px rgba(44, 40, 32, 0.05), 0 1px 3px 0 rgba(44, 40, 32, 0.03);
+}
+
+.shadow-warm-md {
+  box-shadow: 0 4px 14px -3px rgba(44, 40, 32, 0.08), 0 2px 6px -1px rgba(44, 40, 32, 0.04);
 }

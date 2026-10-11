@@ -14,15 +14,18 @@ import {
   getOtherCardTypes,
   ruleFromEntry,
   INDIAN_STATES,
-  checkNeutrality,
-  redactSensitiveIds,
 } from '@repo/shared';
 import type { LocalHousehold } from '@/lib/localTypes';
-import { Lock, Save, ArrowLeft, Volume2, ShieldCheck } from 'lucide-react';
+import {
+  Lock,
+  ArrowLeft,
+  Check,
+  Minus,
+  Plus,
+} from 'lucide-react';
 
 export default function HouseholdSetupPage() {
   const router = useRouter();
-  // /household/<id>/edit → id from the real URL (works with the offline page fallback).
   const pathId = usePathSegment(2);
   const editId = pathId && pathId !== 'new' ? pathId : undefined;
 
@@ -30,6 +33,8 @@ export default function HouseholdSetupPage() {
   const [cardType, setCardType] = useState<CardType>('PHH');
   /** The state's own name for the card (only for categories other than AAY/PHH). */
   const [cardName, setCardName] = useState<string | null>(null);
+  /** Shown when sources disagree about this state's figure. */
+  const [caution, setCaution] = useState<string | null>(null);
   const [members, setMembers] = useState<number>(4);
   const [perUnitKg, setPerUnitKg] = useState<number>(5);
   const [basis, setBasis] = useState<RuleBasis>('perMember');
@@ -37,11 +42,10 @@ export default function HouseholdSetupPage() {
   const [sourceUrl, setSourceUrl] = useState<string | null>('https://nfsa.gov.in/');
   const [sourceNote, setSourceNote] = useState('National scale; state schemes may differ.');
   const [lastVerified, setLastVerified] = useState<string | null>(null);
-  /** Shown when sources disagree about this state's figure. */
-  const [caution, setCaution] = useState<string | null>(null);
 
   const [ruleConfirmed, setRuleConfirmed] = useState(false);
   const [ruleConfirmedAt, setRuleConfirmedAt] = useState<string | null>(null);
+  const [isEdited, setIsEdited] = useState(false);
 
   const [stateCode, setStateCode] = useState<string | null>(null);
   const [district, setDistrict] = useState('');
@@ -49,21 +53,17 @@ export default function HouseholdSetupPage() {
   const [fpsName, setFpsName] = useState('');
   const [rationCardNo, setRationCardNo] = useState('');
 
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  const stateName = INDIAN_STATES.find((s) => s.code === stateCode)?.name ?? null;
-  const otherCards = getOtherCardTypes(stateCode);
-  const chosenOther = cardType === 'CUSTOM' ? otherCards.find((e) => e.name === cardName) ?? null : null;
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (editId) {
-      setLoading(true);
       getLocalHousehold(editId).then((h) => {
         if (h) {
           setLabel(h.label);
           setCardType(h.cardType);
           setCardName(h.cardName ?? null);
+          if (h.cardType !== 'CUSTOM') setCaution(getNfsaEntry(h.stateCode, h.cardType)?.caution ?? null);
           setMembers(h.members);
           setPerUnitKg(h.rule.perUnitKg);
           setBasis(h.rule.basis);
@@ -74,21 +74,23 @@ export default function HouseholdSetupPage() {
           setRuleConfirmed(h.ruleConfirmed);
           setRuleConfirmedAt(h.ruleConfirmedAt);
           setStateCode(h.stateCode);
-          if (h.cardType !== 'CUSTOM') setCaution(getNfsaEntry(h.stateCode, h.cardType)?.caution ?? null);
           setDistrict(h.district || '');
           setFpsNo(h.fpsNo || '');
           setFpsName(h.fpsName || '');
           setRationCardNo(h.rationCardNo || '');
         }
-        setLoading(false);
       });
     }
   }, [editId]);
 
+  const stateName = INDIAN_STATES.find((st) => st.code === stateCode)?.name ?? null;
+  const otherCards = getOtherCardTypes(stateCode);
+  const chosenOther = cardType === 'CUSTOM' ? otherCards.find((e) => e.name === cardName) ?? null : null;
+
   /**
-   * Applies a card type. AAY/PHH pre-fill that state's sourced figure (or the national scale);
-   * any other card starts with NO figure: the household types it and says where it comes from.
-   * Either way the rule is un-confirmed (Principle 1).
+   * AAY/PHH pre-fill that state's sourced figure (or the national scale). Any other card starts
+   * with NO figure: the household types it and says where it comes from. Either way the rule is
+   * un-confirmed (Principle 1).
    */
   const applyCardType = (type: CardType, state: string | null) => {
     setCardType(type);
@@ -107,7 +109,7 @@ export default function HouseholdSetupPage() {
       setCaution(entry?.caution ?? null);
     } else {
       setPerUnitKg(0);
-      setSourceTitle(`${INDIAN_STATES.find((s) => s.code === state)?.name ?? 'State'} scheme (figure entered by the household)`);
+      setSourceTitle(`${INDIAN_STATES.find((st) => st.code === state)?.name ?? 'State'} scheme (figure entered by the household)`);
       setSourceUrl(null);
       setSourceNote('');
       setLastVerified(null);
@@ -117,36 +119,21 @@ export default function HouseholdSetupPage() {
     setRuleConfirmedAt(null);
   };
 
-  const handleSelectCardType = (type: CardType) => applyCardType(type, stateCode);
+  const handleSelectCardType = (type: CardType) => {
+    applyCardType(type, stateCode);
+    setIsEdited(false);
+  };
 
   const handleSelectState = (code: string | null) => {
     setStateCode(code);
-    // A different state has different card names and sources: start that card choice again.
+    // Another state has other card names and sources: restart the card choice.
     applyCardType(cardType, code);
+    setIsEdited(false);
   };
 
   const handleSelectOther = (name: string) => {
     setCardName(name || null);
-    const entry = otherCards.find((e) => e.name === name);
-    setCaution(entry?.caution ?? null);
-    setRuleConfirmed(false);
-    setRuleConfirmedAt(null);
-  };
-
-  const handleMembersChange = (newVal: number) => {
-    const clamped = Math.max(1, Math.min(30, newVal));
-    setMembers(clamped);
-    // Modifying members flips rule back to unconfirmed
-    setRuleConfirmed(false);
-  };
-
-  const handleKgChange = (val: number) => {
-    setPerUnitKg(val);
-    setRuleConfirmed(false);
-  };
-
-  const handleBasisChange = (b: RuleBasis) => {
-    setBasis(b);
+    setCaution(otherCards.find((e) => e.name === name)?.caution ?? null);
     setRuleConfirmed(false);
   };
 
@@ -163,17 +150,31 @@ export default function HouseholdSetupPage() {
         ? 'Say where this figure comes from (for example, your state food department order or the shop notice).'
         : null;
 
-  const handleConfirmRule = () => {
-    if (confirmBlockedReason) return;
-    setRuleConfirmed(true);
-    setRuleConfirmedAt(new Date().toISOString());
+  const handleMembersChange = (newVal: number) => {
+    const clamped = Math.max(1, Math.min(30, newVal));
+    setMembers(clamped);
+    setRuleConfirmed(false);
+    setIsEdited(true);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleBasisToggle = (newBasis: RuleBasis) => {
+    setBasis(newBasis);
+    setRuleConfirmed(false);
+    setIsEdited(true);
+  };
+
+  const handleKgChange = (newKg: number) => {
+    setPerUnitKg(newKg);
+    setRuleConfirmed(false);
+    setIsEdited(true);
+  };
+
+  const handleConfirmRuleAndSave = async () => {
+    if (confirmBlockedReason) return;
     setSaving(true);
     try {
       const id = editId || crypto.randomUUID();
+      const now = new Date().toISOString();
       const household: LocalHousehold = {
         id,
         label,
@@ -188,299 +189,355 @@ export default function HouseholdSetupPage() {
           sourceNote,
           lastVerified,
         },
-        ruleConfirmed,
-        ruleConfirmedAt,
+        ruleConfirmed: true,
+        ruleConfirmedAt: now,
         stateCode,
         district,
         fpsNo,
         fpsName,
-        rationCardNo, // Saved locally in IndexedDB only
+        rationCardNo,
       };
 
       await saveLocalHousehold(household);
-      router.push('/');
+      setRuleConfirmed(true);
+      setRuleConfirmedAt(now);
+      setToastMessage('Rule confirmed successfully!');
+
+      setTimeout(() => {
+        router.push('/?notice=rule_confirmed');
+      }, 700);
     } finally {
       setSaving(false);
     }
   };
 
+  const lastFour = rationCardNo.length >= 4 ? rationCardNo.slice(-4) : rationCardNo;
+
   return (
-    <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col font-sans pb-24">
+    <div className="flex-1 flex flex-col font-sans pb-32">
       <Header />
 
-      <main className="flex-1 max-w-2xl mx-auto px-4 py-6 w-full space-y-6">
-        <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.back()}
-              className="p-1.5 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-            <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
-              {editId ? 'Edit Household & Rule' : 'Household & Rule Setup'}
-            </h2>
-          </div>
-          <ListenButton
-            text="Household setup. Select your state, then your card type: Antyodaya, Priority Household, or another card your state issues, enter member count, and explicitly confirm your monthly entitlement rule."
-            label="Listen"
-          />
-        </div>
-
-        <form onSubmit={handleSave} className="space-y-6">
-          {/* Label */}
-          <div>
-            <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
-              Household Label
-            </label>
-            <input
-              type="text"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-teal-600"
-              required
+      <main className="flex-1 w-full px-4 py-5 space-y-4">
+        {/* Page Heading: Back button, heading, Listen on same row, explanation below */}
+        <div className="border-b border-[#E8E5DD] dark:border-stone-800 pb-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => router.back()}
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+                title="Go back"
+              >
+                <ArrowLeft className="w-5 h-5 text-stone-700 dark:text-stone-300" />
+              </button>
+              <h1 className="text-base font-semibold text-stone-900 dark:text-stone-100">
+                {editId ? 'Edit Ration Card Setup' : 'Ration Card Setup'}
+              </h1>
+            </div>
+            <ListenButton
+              text="Ration card setup. Choose your card type, number of members, state and shop details, and confirm your statutory entitlement rule."
+              label="Listen"
             />
           </div>
+          <p className="text-xs text-stone-500 pl-11 mt-0.5">
+            Configure your card type and family members to verify statutory entitlements.
+          </p>
+        </div>
 
-          {/* State first: it decides the card names and sources shown below */}
-          <div>
-            <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
-              Your State / UT
-            </label>
-            <select
-              value={stateCode ?? ''}
-              onChange={(e) => handleSelectState(e.target.value || null)}
-              className="w-full px-3 py-2 text-sm bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded text-stone-900 dark:text-stone-100"
-            >
-              <option value="">Select your state…</option>
-              {INDIAN_STATES.map((st) => (
-                <option key={st.code} value={st.code}>
-                  {st.name}
-                </option>
-              ))}
-            </select>
-            {!stateCode && (
-              <p className="text-[11px] text-stone-500 mt-1">
-                Choose your state to see the card names it uses. You can still continue without it.
-              </p>
-            )}
+        {toastMessage && (
+          <div className="p-3 bg-[#edf7f2] border border-[#bbf7d0] text-[#166534] rounded-xl text-xs font-medium flex items-center gap-2">
+            <Check className="w-4 h-4 shrink-0" />
+            <span>{toastMessage}</span>
           </div>
+        )}
 
-          {/* Card Type Radio Tiles */}
-          <div>
-            <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-2">
-              Ration Card Type
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                {
-                  type: 'PHH' as CardType,
-                  title: 'Priority (PHH)',
-                  desc: '5 kg per member per month (national scale)',
-                  stateName: getNfsaEntry(stateCode, 'PHH')?.name,
-                },
-                {
-                  type: 'AAY' as CardType,
-                  title: 'Antyodaya (AAY)',
-                  desc: '35 kg per family per month (national scale)',
-                  stateName: getNfsaEntry(stateCode, 'AAY')?.name,
-                },
-                {
-                  type: 'CUSTOM' as CardType,
-                  title: 'Other card',
-                  desc: stateName ? `Another card issued in ${stateName}` : 'Any other card or state scheme',
-                  stateName: undefined as string | undefined,
-                },
-              ].map((item) => (
+        {/* SECTION 0: State first. It decides the card names and sources shown below. */}
+        <section className="bg-white dark:bg-[#202622] border border-[#E8E5DD] dark:border-stone-800 rounded-2xl p-5 shadow-subtle space-y-2">
+          <h2 className="text-xs font-semibold text-stone-800 dark:text-stone-200">Your State / UT</h2>
+          <select
+            value={stateCode ?? ''}
+            onChange={(e) => handleSelectState(e.target.value || null)}
+            className="w-full min-h-[44px] px-3 py-2 text-sm bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+          >
+            <option value="">Select your state…</option>
+            {INDIAN_STATES.map((st) => (
+              <option key={st.code} value={st.code}>
+                {st.name}
+              </option>
+            ))}
+          </select>
+          {!stateCode && (
+            <p className="text-[11px] text-stone-500">Choose your state to see the card names it uses. You can also continue without it.</p>
+          )}
+        </section>
+
+        {/* SECTION 1: Ration Card Type (White card, subtle border) */}
+        <section className="bg-white dark:bg-[#202622] border border-[#E8E5DD] dark:border-stone-800 rounded-2xl p-5 shadow-subtle space-y-3">
+          <h2 className="text-xs font-semibold text-stone-800 dark:text-stone-200">
+            Ration Card Type
+          </h2>
+          <div className="grid grid-cols-3 gap-2.5">
+            {[
+              { type: 'PHH' as CardType, title: 'Priority (PHH)', desc: '5 kg/member' },
+              { type: 'AAY' as CardType, title: 'Antyodaya (AAY)', desc: '35 kg/family' },
+              { type: 'CUSTOM' as CardType, title: 'Other card', desc: stateName ? `Issued in ${stateName}` : 'State scheme' },
+            ].map((item) => {
+              const isSelected = cardType === item.type;
+              return (
                 <button
                   key={item.type}
                   type="button"
                   onClick={() => handleSelectCardType(item.type)}
-                  className={`p-3.5 rounded-lg border text-left transition-all ${
-                    cardType === item.type
-                      ? 'bg-teal-50 dark:bg-teal-950/60 border-teal-700 dark:border-teal-600 ring-2 ring-teal-700'
-                      : 'bg-white dark:bg-stone-900 border-stone-300 dark:border-stone-700 hover:border-stone-400'
+                  className={`min-h-[64px] p-2.5 rounded-xl text-center transition-all focus:outline-none focus:ring-2 focus:ring-[#244b38] relative flex flex-col justify-center items-center ${
+                    isSelected
+                      ? 'border-2 border-[#244b38] bg-[#edf7f2] dark:bg-emerald-950/40 text-[#1c3d2e]'
+                      : 'border border-[#E8E5DD] dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-700 hover:bg-stone-50'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-stone-900 dark:text-stone-100">
-                      {item.title}
+                  {isSelected && (
+                    <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#244b38] text-white flex items-center justify-center">
+                      <Check className="w-2.5 h-2.5 stroke-[3]" />
                     </span>
-                    <span
-                      className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                        cardType === item.type
-                          ? 'border-teal-700 bg-teal-700'
-                          : 'border-stone-400'
-                      }`}
-                    >
-                      {cardType === item.type && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                      )}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-stone-500 leading-tight">{item.desc}</p>
-                  {item.stateName && (
-                    <p className="text-[10px] text-stone-400 leading-tight mt-1">Printed as: {item.stateName}</p>
                   )}
+                  <div className="text-xs font-semibold leading-tight">{item.title}</div>
+                  <div className="text-[10px] text-stone-500 mt-1">{item.desc}</div>
                 </button>
-              ))}
-            </div>
+              );
+            })}
+          </div>
 
-            {/* Other cards: the state's own list. No figure is assumed for any of them. */}
-            {cardType === 'CUSTOM' && (
-              <div className="mt-3 p-3 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 space-y-3">
-                {otherCards.length > 0 ? (
-                  <div>
-                    <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
-                      Which card do you have?
-                    </label>
-                    <select
-                      value={otherCards.some((e) => e.name === cardName) ? cardName ?? '' : cardName ? '__other__' : ''}
-                      onChange={(e) => handleSelectOther(e.target.value === '__other__' ? '' : e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded"
-                    >
-                      <option value="">Select your card…</option>
-                      {otherCards.map((e) => (
-                        <option key={e.id} value={e.name}>
-                          {e.name}
-                          {e.code ? ` (${e.code})` : ''}
-                        </option>
-                      ))}
-                      <option value="__other__">My card is not listed</option>
-                    </select>
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-stone-500">
-                    {stateName ? `We have no other card names listed for ${stateName}.` : 'Choose your state to see its card names.'}
-                  </p>
-                )}
-                {(!chosenOther || cardName === null) && (
-                  <div>
-                    <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
-                      Card name (as printed on your card)
-                    </label>
-                    <input
-                      type="text"
-                      value={cardName ?? ''}
-                      maxLength={120}
-                      onChange={(e) => setCardName(e.target.value || null)}
-                      placeholder="e.g. APL (Farmer)"
-                      className="w-full px-3 py-2 text-xs bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded"
-                    />
-                  </div>
-                )}
-                {chosenOther && (
-                  <div className="text-[11px] text-stone-600 dark:text-stone-400 space-y-1">
-                    <p>{chosenOther.note}</p>
-                    {chosenOther.reference && (
-                      <p className="p-2 rounded bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-950 dark:text-amber-200">
-                        {chosenOther.reference.text}{' '}
-                        <a href={chosenOther.reference.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline">
-                          Source ↗
-                        </a>
-                      </p>
-                    )}
-                    <a href={chosenOther.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline text-teal-700 dark:text-teal-400">
-                      Where this card is listed ↗
-                    </a>
-                  </div>
-                )}
+          {(cardType === 'PHH' || cardType === 'AAY') && getNfsaEntry(stateCode, cardType) && (
+            <p className="text-[11px] text-stone-500">Printed on {stateName ?? 'state'} cards as: <span className="font-medium text-stone-700 dark:text-stone-300">{getNfsaEntry(stateCode, cardType)!.name}</span></p>
+          )}
+
+          {/* Other cards: the state's own list. No figure is assumed for any of them. */}
+          {cardType === 'CUSTOM' && (
+            <div className="pt-1 space-y-3">
+              {otherCards.length > 0 ? (
                 <div>
-                  <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
-                    Where does your monthly quantity come from?
-                  </label>
+                  <span className="text-[11px] font-medium text-stone-500 block mb-1">Which card do you have?</span>
+                  <select
+                    value={otherCards.some((e) => e.name === cardName) ? cardName ?? '' : cardName ? '__other__' : ''}
+                    onChange={(e) => handleSelectOther(e.target.value === '__other__' ? '' : e.target.value)}
+                    className="w-full min-h-[44px] px-3 py-2 text-xs bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+                  >
+                    <option value="">Select your card…</option>
+                    {otherCards.map((e) => (
+                      <option key={e.id} value={e.name}>
+                        {e.name}
+                        {e.code ? ` (${e.code})` : ''}
+                      </option>
+                    ))}
+                    <option value="__other__">My card is not listed</option>
+                  </select>
+                </div>
+              ) : (
+                <p className="text-[11px] text-stone-500">
+                  {stateName ? `We have no other card names listed for ${stateName}.` : 'Choose your state to see its card names.'}
+                </p>
+              )}
+              {!chosenOther && (
+                <div>
+                  <span className="text-[11px] font-medium text-stone-500 block mb-1">Card name (as printed on your card)</span>
                   <input
                     type="text"
-                    value={sourceNote}
-                    maxLength={500}
-                    onChange={(e) => handleSourceNoteChange(e.target.value)}
-                    placeholder="e.g. state food department order, notice at the shop, SMS"
-                    className="w-full px-3 py-2 text-xs bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded"
+                    value={cardName ?? ''}
+                    maxLength={120}
+                    onChange={(e) => setCardName(e.target.value || null)}
+                    placeholder="e.g. APL (Farmer)"
+                    className="w-full min-h-[44px] px-3 py-2 text-xs bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
                   />
-                  <p className="text-[11px] text-stone-500 mt-1">
-                    No official figure is filled in for this card. Type the quantity below and say where it comes from.
-                  </p>
                 </div>
+              )}
+              {chosenOther && (
+                <div className="text-[11px] text-stone-600 dark:text-stone-400 space-y-1.5">
+                  <p>{chosenOther.note}</p>
+                  {chosenOther.reference && (
+                    <p className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+                      {chosenOther.reference.text}{' '}
+                      <a href={chosenOther.reference.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                        Source ↗
+                      </a>
+                    </p>
+                  )}
+                  <a href={chosenOther.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline text-[#244b38] dark:text-emerald-400">
+                    Where this card is listed ↗
+                  </a>
+                </div>
+              )}
+              <div>
+                <span className="text-[11px] font-medium text-stone-500 block mb-1">Where does your monthly quantity come from?</span>
+                <input
+                  type="text"
+                  value={sourceNote}
+                  maxLength={500}
+                  onChange={(e) => handleSourceNoteChange(e.target.value)}
+                  placeholder="e.g. state food department order, notice at the shop, SMS"
+                  className="w-full min-h-[44px] px-3 py-2 text-xs bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+                />
+                <p className="text-[11px] text-stone-500 mt-1">No official figure is filled in for this card. Enter the quantity below and say where it comes from.</p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </section>
 
-          {/* Members on card stepper */}
-          <div>
-            <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-2">
-              Members on Card (1–30)
-            </label>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => handleMembersChange(members - 1)}
-                className="w-12 h-12 rounded-lg bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-lg font-bold flex items-center justify-center transition-colors"
-              >
-                &minus;
-              </button>
-              <div className="w-20 text-center font-mono text-2xl font-bold bg-white dark:bg-stone-900 py-2 border border-stone-300 dark:border-stone-700 rounded-lg">
-                {members}
-              </div>
-              <button
-                type="button"
-                onClick={() => handleMembersChange(members + 1)}
-                className="w-12 h-12 rounded-lg bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-lg font-bold flex items-center justify-center transition-colors"
-              >
-                +
-              </button>
+        {/* SECTION 2: Members Stepper (White card, subtle border) */}
+        <section className="bg-white dark:bg-[#202622] border border-[#E8E5DD] dark:border-stone-800 rounded-2xl p-5 shadow-subtle space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xs font-semibold text-stone-800 dark:text-stone-200">
+                Household Members on Card (1–30)
+              </h2>
+              <p className="text-[11px] text-stone-500 mt-0.5">Listed on your official ration card</p>
             </div>
           </div>
 
-          {/* Rule custom inputs if needed */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
-                Rule Quantity (kg)
-              </label>
+          <div className="flex items-center justify-center gap-4 py-2">
+            <button
+              type="button"
+              onClick={() => handleMembersChange(members - 1)}
+              disabled={members <= 1}
+              className="w-12 h-12 rounded-xl bg-[#FAF8F1] hover:bg-[#eae6d9] dark:bg-stone-800 border border-[#E8E5DD] text-stone-800 dark:text-stone-100 flex items-center justify-center font-bold text-lg transition-all disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+              title="Decrease members"
+            >
+              <Minus className="w-5 h-5" />
+            </button>
+
+            <div className="w-20 h-12 bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl flex items-center justify-center font-mono font-bold text-2xl text-[#1c3d2e] dark:text-stone-100">
+              {members}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleMembersChange(members + 1)}
+              disabled={members >= 30}
+              className="w-12 h-12 rounded-xl bg-[#FAF8F1] hover:bg-[#eae6d9] dark:bg-stone-800 border border-[#E8E5DD] text-stone-800 dark:text-stone-100 flex items-center justify-center font-bold text-lg transition-all disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+              title="Increase members"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          </div>
+        </section>
+
+        {/* SECTION 3: Rule Basis Toggle & Quantity (White card, subtle border) */}
+        <section className="bg-white dark:bg-[#202622] border border-[#E8E5DD] dark:border-stone-800 rounded-2xl p-5 shadow-subtle space-y-3">
+          <h2 className="text-xs font-semibold text-stone-800 dark:text-stone-200">
+            Rule Basis &amp; Entitlement Quantity
+          </h2>
+
+          <div className="grid grid-cols-2 p-1 bg-[#FAF8F1] dark:bg-stone-900 rounded-xl border border-[#E8E5DD]">
+            <button
+              type="button"
+              onClick={() => handleBasisToggle('perMember')}
+              className={`min-h-[40px] text-xs font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#244b38] ${
+                basis === 'perMember'
+                  ? 'bg-white dark:bg-stone-800 text-[#1c3d2e] dark:text-stone-100 shadow-xs font-semibold'
+                  : 'text-stone-600 dark:text-stone-400'
+              }`}
+            >
+              Per Member
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBasisToggle('perFamily')}
+              className={`min-h-[40px] text-xs font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#244b38] ${
+                basis === 'perFamily'
+                  ? 'bg-white dark:bg-stone-800 text-[#1c3d2e] dark:text-stone-100 shadow-xs font-semibold'
+                  : 'text-stone-600 dark:text-stone-400'
+              }`}
+            >
+              Per Family
+            </button>
+          </div>
+
+          <div className="pt-2 flex items-center justify-between">
+            <span className="text-xs text-stone-600">Quantity per {basis === 'perMember' ? 'member' : 'family'}:</span>
+            <div className="flex items-center gap-1.5">
               <input
                 type="number"
                 step="0.5"
                 min="0"
                 max="100"
                 value={perUnitKg || ''}
-                placeholder={cardType === 'CUSTOM' ? 'Enter kg' : undefined}
+                placeholder="kg"
                 onChange={(e) => handleKgChange(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 text-sm bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded font-mono"
+                className="w-20 min-h-[40px] px-3 py-1.5 text-center text-sm font-mono font-bold bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+              />
+              <span className="text-xs text-stone-500">kg</span>
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION 4: State, District & Shop Details (White card, subtle border) */}
+        <section className="bg-white dark:bg-[#202622] border border-[#E8E5DD] dark:border-stone-800 rounded-2xl p-5 shadow-subtle space-y-3">
+          <h2 className="text-xs font-semibold text-stone-800 dark:text-stone-200">
+            District &amp; Shop (FPS) Details
+          </h2>
+
+          <div className="grid grid-cols-1 gap-2.5">
+            <div>
+              <span className="text-[11px] font-medium text-stone-500 block mb-1">District</span>
+              <input
+                type="text"
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+                placeholder="District name"
+                className="w-full min-h-[44px] px-3 py-2 text-xs bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5 pt-1">
+            <div>
+              <span className="text-[11px] font-medium text-stone-500 block mb-1">Shop / FPS Number</span>
+              <input
+                type="text"
+                value={fpsNo}
+                onChange={(e) => setFpsNo(e.target.value)}
+                placeholder="e.g. 0417"
+                className="w-full min-h-[44px] px-3 py-2 text-xs font-mono bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
               />
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
-                Rule Basis
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleBasisChange('perMember')}
-                  className={`py-2 text-xs rounded border font-medium ${
-                    basis === 'perMember'
-                      ? 'bg-teal-700 text-white border-teal-700'
-                      : 'bg-white dark:bg-stone-900 border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300'
-                  }`}
-                >
-                  Per Member
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleBasisChange('perFamily')}
-                  className={`py-2 text-xs rounded border font-medium ${
-                    basis === 'perFamily'
-                      ? 'bg-teal-700 text-white border-teal-700'
-                      : 'bg-white dark:bg-stone-900 border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300'
-                  }`}
-                >
-                  Per Family
-                </button>
-              </div>
+              <span className="text-[11px] font-medium text-stone-500 block mb-1">Shop Name</span>
+              <input
+                type="text"
+                value={fpsName}
+                onChange={(e) => setFpsName(e.target.value)}
+                placeholder="e.g. Ration Store 12"
+                className="w-full min-h-[44px] px-3 py-2 text-xs bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+              />
             </div>
           </div>
 
-          {/* RULE CONFIRMATION CARD (HEART OF PRINCIPLE P1) */}
+          {/* Masked Ration Card Number */}
+          <div className="pt-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] font-medium text-stone-700 dark:text-stone-300 flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-[#244b38]" />
+                <span>Ration Card Number</span>
+              </span>
+              <span className="text-[10px] text-[#244b38] font-medium bg-[#edf7f2] px-2 py-0.5 rounded-full">
+                Stays on this phone
+              </span>
+            </div>
+            <input
+              type="text"
+              value={rationCardNo}
+              onChange={(e) => setRationCardNo(e.target.value)}
+              placeholder="Enter full number"
+              className="w-full min-h-[44px] px-3 py-2 text-xs font-mono bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+            />
+            {rationCardNo && (
+              <p className="text-[11px] text-stone-500 mt-1 font-mono">
+                Display format: •••• •••• {lastFour}
+              </p>
+            )}
+          </div>
+        </section>
+
+        {/* SECTION 5: Statutory Rule Card */}
+        <section>
           <RuleCard
             cardType={cardType}
             members={members}
@@ -494,91 +551,13 @@ export default function HouseholdSetupPage() {
             }}
             isConfirmed={ruleConfirmed}
             confirmedDate={ruleConfirmedAt}
-            onConfirm={handleConfirmRule}
+            isEdited={isEdited}
+            onConfirm={handleConfirmRuleAndSave}
+            showActions={true}
             caution={caution}
             blockedReason={confirmBlockedReason}
           />
-
-          {/* State & Location details */}
-          <div className="space-y-4 pt-4 border-t border-stone-200 dark:border-stone-800">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300">
-              State &amp; Shop Details (Optional)
-            </h4>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
-                  District
-                </label>
-                <input
-                  type="text"
-                  value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
-                  placeholder="District name"
-                  className="w-full px-3 py-2 text-xs bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
-                  FPS (Shop) Number
-                </label>
-                <input
-                  type="text"
-                  value={fpsNo}
-                  onChange={(e) => setFpsNo(e.target.value)}
-                  placeholder="e.g. 0417"
-                  className="w-full px-3 py-2 text-xs bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
-                  FPS (Shop) Name
-                </label>
-                <input
-                  type="text"
-                  value={fpsName}
-                  onChange={(e) => setFpsName(e.target.value)}
-                  placeholder="e.g. Shree Ganesh Wajavi Dukan"
-                  className="w-full px-3 py-2 text-xs bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded"
-                />
-              </div>
-            </div>
-
-            {/* Ration Card Number - LOCAL STORAGE ONLY */}
-            <div className="bg-stone-50 dark:bg-stone-900 p-3.5 rounded-lg border border-stone-300 dark:border-stone-700 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-stone-800 dark:text-stone-200 flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-teal-700" />
-                  <span>Ration Card Number (Local Storage Only)</span>
-                </label>
-                <span className="text-[10px] text-teal-800 dark:text-teal-400 font-semibold bg-teal-100 dark:bg-teal-950 px-2 py-0.5 rounded">
-                  Stays on this phone
-                </span>
-              </div>
-              <input
-                type="text"
-                value={rationCardNo}
-                onChange={(e) => setRationCardNo(e.target.value)}
-                placeholder="e.g. MH2704179920"
-                className="w-full px-3 py-2 text-xs font-mono bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-700 rounded"
-              />
-              <p className="text-[11px] text-stone-500">
-                Never sent to any server. Stored locally to allow 1-tap copying on official grievance forms.
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full py-3 bg-teal-700 hover:bg-teal-800 text-white font-semibold text-xs rounded shadow-xs flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" />
-            <span>Save Household &amp; Settings</span>
-          </button>
-        </form>
+        </section>
       </main>
 
       <BottomNav />

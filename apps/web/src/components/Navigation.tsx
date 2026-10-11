@@ -8,85 +8,81 @@ import { useApp } from '@/context/AppContext';
 import {
   Volume2,
   VolumeX,
-  Cloud,
-  CloudOff,
   RefreshCw,
   Home,
   HelpCircle,
   Settings,
-  BookOpen,
+  ShieldCheck,
 } from 'lucide-react';
 
 export function Header() {
-  const { isOnline, syncStatus, syncNow, isSpeaking, stopSpeaking, syncNotice, dismissSyncNotice, t, lang } = useApp();
+  const { isOnline, syncStatus, syncNow, isSpeaking, stopSpeaking, syncNotice, dismissSyncNotice, t } = useApp();
 
   return (
-    <header className="sticky top-0 z-40 bg-stone-50/95 dark:bg-stone-900/95 border-b border-stone-200 dark:border-stone-800 backdrop-blur">
-      <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded bg-teal-700 text-amber-50 flex items-center justify-center font-bold text-sm tracking-wider shadow-sm">
-            RS
+    <header className="sticky top-0 z-40 bg-[#FAF8F1]/95 dark:bg-[#181d1a]/95 border-b border-[#E8E5DD] dark:border-stone-800 backdrop-blur">
+      <div className="w-full px-4 h-16 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2.5 focus:outline-none focus:ring-2 focus:ring-[#244b38] rounded-xl p-1">
+          <div className="w-9 h-9 rounded-xl bg-[#244b38] text-white flex items-center justify-center font-bold shadow-xs">
+            <span className="text-lg">🌾</span>
           </div>
           <div>
-            <h1 className="text-base font-bold text-stone-900 dark:text-stone-100 tracking-tight leading-tight">
-              RationSaathi
-            </h1>
-            <p className="text-[10px] text-stone-500 dark:text-stone-400 -mt-0.5 font-medium">
-              {lang === 'en' ? 'राशनसाथी' : t('appName')} &bull; {t('taglineShort')}
+            <div className="flex items-center gap-1.5">
+              <span className="text-base font-bold text-[#1c3d2e] dark:text-stone-100 tracking-tight">
+                Ration<span className="text-[#c07b17]">Saathi</span>
+              </span>
+            </div>
+            <p className="text-[10px] text-stone-500 dark:text-stone-400 font-medium tracking-wide">
+              Sahi Ration &bull; Sabka Adhikar
             </p>
           </div>
         </Link>
 
-        <div className="flex items-center gap-3">
-          {/* TTS Active Indicator */}
+        <div className="flex items-center gap-2">
+          {/* Audio Stop Button */}
           {isSpeaking && (
             <button
               onClick={stopSpeaking}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-800 animate-pulse"
+              className="min-h-[44px] flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800 animate-pulse focus:outline-none focus:ring-2 focus:ring-amber-600"
               title="Stop audio reading"
             >
-              <VolumeX className="w-3.5 h-3.5" />
+              <VolumeX className="w-4 h-4" />
               <span>{t('actions.stopAudio')}</span>
             </button>
           )}
 
-          {/* Sync & Connectivity Indicator */}
+          {/* Offline/Saved on this phone badge */}
           <button
             onClick={() => syncNow()}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-200 transition-colors"
-            title="Sync status"
+            className="min-h-[40px] flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium rounded-full bg-white dark:bg-stone-900 border border-[#E8E5DD] dark:border-stone-800 text-stone-700 dark:text-stone-300 shadow-2xs hover:bg-stone-50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+            title="Data storage status"
           >
             {isOnline ? (
               syncStatus === 'syncing' ? (
                 <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-teal-600" />
-                  <span className="hidden sm:inline">{t('sync.syncing')}</span>
-                </>
-              ) : syncStatus === 'synced' ? (
-                <>
-                  <Cloud className="w-3.5 h-3.5 text-teal-600" />
-                  <span className="hidden sm:inline">{t('sync.synced')}</span>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#244b38]" />
+                  <span>Syncing…</span>
                 </>
               ) : (
                 <>
-                  <RefreshCw className="w-3.5 h-3.5 text-amber-600" />
-                  <span className="hidden sm:inline">{t('sync.pending')}</span>
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#244b38]" />
+                  <span>Saved on phone</span>
                 </>
               )
             ) : (
               <>
-                <CloudOff className="w-3.5 h-3.5 text-stone-400" />
-                <span className="hidden sm:inline">{t('sync.offline')}</span>
+                <ShieldCheck className="w-3.5 h-3.5 text-stone-500" />
+                <span>Saved on phone (Offline)</span>
               </>
             )}
           </button>
         </div>
       </div>
+
       {syncNotice && (
-        <div role="status" aria-live="polite" className="border-t border-stone-200 dark:border-stone-800 bg-amber-50 dark:bg-amber-950/40">
-          <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-between gap-3 text-xs text-amber-950 dark:text-amber-200">
+        <div role="status" aria-live="polite" className="border-t border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40">
+          <div className="w-full px-4 py-2 flex items-center justify-between gap-3 text-xs text-amber-950 dark:text-amber-200">
             <span>{syncNotice}</span>
-            <button type="button" onClick={dismissSyncNotice} className="font-semibold underline shrink-0">
+            <button type="button" onClick={dismissSyncNotice} className="font-semibold underline shrink-0 min-h-[44px] px-2">
               {t('common.ok')}
             </button>
           </div>
@@ -98,18 +94,17 @@ export function Header() {
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { t } = useApp();
 
   const navItems = [
-    { href: '/', label: t('nav.home'), icon: Home },
-    { href: '/channels', label: t('nav.helplines'), icon: BookOpen },
-    { href: '/help', label: t('nav.help'), icon: HelpCircle },
-    { href: '/settings', label: t('nav.settings'), icon: Settings },
+    { href: '/', label: 'Home', icon: Home },
+    { href: '/help', label: 'Help', icon: HelpCircle },
+    { href: '/settings', label: 'Settings', icon: Settings },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-stone-50 dark:bg-stone-900 border-t border-stone-200 dark:border-stone-800 pb-safe">
-      <div className="max-w-4xl mx-auto flex items-center justify-around h-14">
+    /* Contained to the desktop shell with max-w-md, white background, thin top border */
+    <nav className="fixed bottom-0 z-40 w-full max-w-md bg-white dark:bg-[#202622] border-t border-[#E8E5DD] dark:border-stone-800 shadow-md">
+      <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -117,14 +112,16 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[11px] font-medium transition-colors ${
+              className={`flex flex-col items-center justify-center flex-1 h-full min-h-[48px] py-1 text-xs font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-[#244b38] rounded-xl ${
                 isActive
-                  ? 'text-teal-700 dark:text-teal-400 font-semibold'
-                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'
+                  ? 'text-[#244b38] dark:text-emerald-400 font-bold'
+                  : 'text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
               }`}
             >
-              <Icon className={`w-4 h-4 mb-0.5 ${isActive ? 'stroke-[2.5]' : ''}`} />
-              <span>{item.label}</span>
+              <div className={`p-1.5 rounded-xl transition-colors ${isActive ? 'bg-[#244b38]/10 dark:bg-emerald-500/15' : ''}`}>
+                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+              </div>
+              <span className="mt-0.5">{item.label}</span>
             </Link>
           );
         })}
@@ -136,21 +133,22 @@ export function BottomNav() {
 export function StepProgress({
   activeStep,
   checkId,
+  householdId,
 }: {
   activeStep: 1 | 2 | 3 | 4;
   checkId: string;
+  householdId?: string;
 }) {
-  const { t } = useApp();
   const steps = [
-    { num: 1, label: t('steps.rule'), href: checkId ? `/check/${checkId}` : '#' },
-    { num: 2, label: t('steps.records'), href: checkId ? `/check/${checkId}` : '#' },
-    { num: 3, label: t('steps.report'), href: checkId ? `/check/${checkId}/report` : '#' },
-    { num: 4, label: t('steps.grievance'), href: checkId ? `/check/${checkId}/grievance` : '#' },
+    { num: 1, label: '1 Rule', href: householdId ? `/household/${householdId}/edit` : `/check/${checkId}` },
+    { num: 2, label: '2 Records', href: checkId ? `/check/${checkId}` : '#' },
+    { num: 3, label: '3 Report', href: checkId ? `/check/${checkId}/report` : '#' },
+    { num: 4, label: '4 Grievance', href: checkId ? `/check/${checkId}/grievance` : '#' },
   ];
 
   return (
-    <div className="bg-stone-100 dark:bg-stone-900/60 border-b border-stone-200 dark:border-stone-800 py-2 px-3">
-      <div className="max-w-4xl mx-auto flex items-center justify-between text-xs">
+    <div className="bg-[#FAF8F1] dark:bg-stone-900 border-b border-[#E8E5DD] dark:border-stone-800 py-2.5 px-3">
+      <div className="w-full flex items-center justify-between text-xs">
         {steps.map((st) => {
           const isCurrent = st.num === activeStep;
           const isDone = st.num < activeStep;
@@ -158,11 +156,11 @@ export function StepProgress({
             <Link
               key={st.num}
               href={st.href}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors ${
+              className={`min-h-[38px] flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-[#244b38] ${
                 isCurrent
-                  ? 'bg-teal-700 text-white font-medium shadow-xs'
+                  ? 'bg-[#244b38] text-white shadow-xs'
                   : isDone
-                  ? 'text-teal-800 dark:text-teal-400 font-medium'
+                  ? 'text-[#244b38] dark:text-emerald-400 font-semibold bg-white dark:bg-stone-800 border border-[#E8E5DD] dark:border-stone-700'
                   : 'text-stone-400 dark:text-stone-500'
               }`}
             >
@@ -175,21 +173,19 @@ export function StepProgress({
   );
 }
 
-/** Text in Latin script only (e.g. the English UI strings). */
 const LATIN_ONLY = /^[\u0000-\u024F\u2000-\u206F\u20B9\u2212\u00D7\s]*$/;
 
 export function ListenButton({ text, label, lang }: { text: string; label?: string; lang?: LanguageCode }) {
   const { speak, t } = useApp();
-  // English text is read with an English voice; other scripts with the chosen language's voice.
   const voice = lang ?? (LATIN_ONLY.test(text) ? 'en' : undefined);
   return (
     <button
       type="button"
       onClick={() => speak(text, voice)}
-      className="inline-flex items-center gap-1 text-xs text-teal-700 dark:text-teal-400 hover:text-teal-800 hover:underline font-medium p-1 rounded transition-colors"
-      title="Listen to this section"
+      className="min-h-[44px] inline-flex items-center gap-1.5 text-xs text-[#244b38] dark:text-emerald-400 hover:text-[#1b3a2b] font-medium px-2 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#244b38] transition-colors"
+      title="Listen to this text aloud"
     >
-      <Volume2 className="w-3.5 h-3.5" />
+      <Volume2 className="w-4 h-4" />
       <span>{label && label !== 'Listen' ? label : t('actions.listen')}</span>
     </button>
   );

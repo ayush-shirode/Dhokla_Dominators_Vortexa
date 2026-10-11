@@ -15,11 +15,10 @@ export const metadata: Metadata = {
   },
 };
 
-// Pinch-zoom stays enabled (FRONTEND_SPEC §8: must work with large text / zoom).
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0f6e5c',
+  themeColor: '#244b38',
 };
 
 export default function RootLayout({
@@ -29,9 +28,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-stone-100 text-stone-900 dark:bg-stone-950 dark:text-stone-100">
+      <body className="min-h-full flex flex-col bg-[#E9EDE4] dark:bg-[#111413] text-[#1c1917] dark:text-[#f5f5f4]">
         <PwaRegister />
-        <AppProvider>{children}</AppProvider>
+        <AppProvider>
+          {/* Centered Desktop Shell */}
+          <div className="flex-1 w-full flex justify-center">
+            <div className="w-full max-w-md min-h-screen bg-[#FAF8F1] dark:bg-[#181d1a] flex flex-col shadow-subtle border-x border-[#E0E5DC] dark:border-[#222824]">
+              {children}
+            </div>
+          </div>
+        </AppProvider>
       </body>
     </html>
   );
