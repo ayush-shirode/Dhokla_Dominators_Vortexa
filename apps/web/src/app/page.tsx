@@ -4,14 +4,20 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Header, BottomNav, ListenButton } from '@/components/Navigation';
+import { useApp } from '@/context/AppContext';
 import { getLocalHouseholds, getLocalChecks, seedExampleData, clearExampleData } from '@/lib/db';
-import { Household, Check, formatKg, computeEntitlement } from '@repo/shared';
+import {
+  formatKg,
+  computeEntitlement,
+} from '@repo/shared';
+import type { LocalCheck, LocalHousehold } from '@/lib/localTypes';
 import { Plus, ChevronRight, Calendar, Users, ShieldAlert, Sparkles, Trash2 } from 'lucide-react';
 
 export default function HomePage() {
+  const { t } = useApp();
   const router = useRouter();
-  const [households, setHouseholds] = useState<Household[]>([]);
-  const [checks, setChecks] = useState<Check[]>([]);
+  const [households, setHouseholds] = useState<LocalHousehold[]>([]);
+  const [checks, setChecks] = useState<LocalCheck[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
@@ -40,7 +46,7 @@ export default function HomePage() {
     }
 
     const newCheckId = crypto.randomUUID();
-    const newCheck: Check = {
+    const newCheck: LocalCheck = {
       id: newCheckId,
       householdId,
       period: currentPeriod,
@@ -93,7 +99,7 @@ export default function HomePage() {
                 className="w-full sm:w-auto px-4 py-2.5 bg-teal-700 hover:bg-teal-800 text-white font-semibold text-xs rounded shadow-xs flex items-center justify-center gap-2 transition-colors"
               >
                 <Calendar className="w-4 h-4" />
-                <span>Check a month</span>
+                <span>{t('actions.checkMonth')}</span>
               </button>
             ) : (
               <Link
@@ -127,14 +133,14 @@ export default function HomePage() {
                 href="/household/new"
                 className="w-full sm:w-auto px-5 py-2.5 bg-teal-700 hover:bg-teal-800 text-white font-semibold text-xs rounded shadow-xs"
               >
-                Add Household
+                {t('actions.addHousehold')}
               </Link>
               <button
                 onClick={handleTryExample}
                 className="w-full sm:w-auto px-4 py-2 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-medium text-xs rounded transition-colors flex items-center justify-center gap-1.5"
               >
                 <Sparkles className="w-3.5 h-3.5 text-teal-600" />
-                <span>Try with example data</span>
+                <span>{t('common.exampleData')}</span>
               </button>
             </div>
           </div>
@@ -154,7 +160,7 @@ export default function HomePage() {
                     className="text-xs text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1"
                   >
                     <Trash2 className="w-3 h-3" />
-                    <span>Clear example data</span>
+                    <span>{t('common.clearExample')}</span>
                   </button>
                 ) : (
                   <button
@@ -162,7 +168,7 @@ export default function HomePage() {
                     className="text-xs text-teal-700 dark:text-teal-400 hover:underline flex items-center gap-1"
                   >
                     <Sparkles className="w-3 h-3" />
-                    <span>Try with example data</span>
+                    <span>{t('common.exampleData')}</span>
                   </button>
                 )}
                 <Link
@@ -181,7 +187,7 @@ export default function HomePage() {
                   .filter((c) => c.householdId === h.id)
                   .sort((a, b) => b.period.localeCompare(a.period));
 
-                const { formula, entitledKg } = computeEntitlement(h);
+                const { formula, kg: entitledKg } = computeEntitlement(h);
                 const isExample = h.id === 'example-household-1';
 
                 return (

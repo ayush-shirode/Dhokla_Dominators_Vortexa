@@ -1,10 +1,10 @@
 {
-  "name": "dhokla-dominators-vortexa",
+  "name": "rationsaathi",
   "version": "1.0.0",
   "private": true,
-  "description": "Monorepo setup with Next.js frontend, Express backend, and shared TypeScript library",
+  "description": "RationSaathi \u2014 PDS entitlement & dispute assistant (Next.js PWA + Express API + shared deterministic engine)",
   "scripts": {
-    "dev": "concurrently -n \"API,WEB\" -c \"blue,cyan\" \"pnpm --filter @repo/api dev\" \"pnpm --filter @repo/web dev\"",
+    "dev": "pnpm build:shared && concurrently -n \"API,WEB\" -c \"blue,cyan\" \"pnpm --filter @repo/api dev\" \"pnpm --filter @repo/web dev\"",
     "dev:web": "pnpm --filter @repo/web dev",
     "dev:api": "pnpm --filter @repo/api dev",
     "build": "pnpm --filter @repo/shared build && pnpm --filter @repo/api build && pnpm --filter @repo/web build",
@@ -12,7 +12,11 @@
     "build:api": "pnpm --filter @repo/api build",
     "build:web": "pnpm --filter @repo/web build",
     "lint": "pnpm -r --if-present lint",
-    "clean": "pnpm -r exec rm -rf node_modules dist .next"
+    "clean": "pnpm -r exec rm -rf node_modules dist .next",
+    "test": "pnpm --filter @repo/shared build && pnpm --filter @repo/api test && pnpm --filter @repo/web check:i18n",
+    "typecheck": "pnpm --filter @repo/shared build && pnpm --filter @repo/api typecheck && pnpm --filter @repo/web exec tsc --noEmit",
+    "setup:assets": "pnpm --filter @repo/api setup:assets",
+    "start": "concurrently -n \"API,WEB\" -c \"blue,cyan\" \"pnpm --filter @repo/api start\" \"pnpm --filter @repo/web start\""
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

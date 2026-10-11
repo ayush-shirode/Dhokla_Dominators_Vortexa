@@ -3,36 +3,43 @@
 import React, { useState } from 'react';
 import {
   AiDraft,
-  DistributionRecord,
   formatKg,
   LOW_CONFIDENCE_THRESHOLD,
   checkNeutrality,
+  type AiAssistInfo,
+  type ExtractionResult,
+  type VoiceParseResult,
 } from '@repo/shared';
+import type { LocalRecord } from '@/lib/localTypes';
 import { ListenButton } from './Navigation';
 import { AlertCircle, CheckCircle2, X } from 'lucide-react';
+import { NEUTRALITY_HINT, flaggedTermsText } from '@/lib/neutrality';
 
 interface DraftReviewProps {
   draft: AiDraft;
-  onConfirm: (record: DistributionRecord) => Promise<void>;
+  onConfirm: (record: LocalRecord) => Promise<void>;
   onDiscard: () => void;
   checkId: string;
 }
 
 export function DraftReview({ draft, onConfirm, onDiscard, checkId }: DraftReviewProps) {
-  const result = draft.result || {};
-  const fields = result.fields || {};
+  // OCR / text drafts carry ExtractionResult; voice drafts carry VoiceParseResult (no reference/extractedText).
+  const result = (draft.kind === 'translation' ? {} : draft.result) as Partial<ExtractionResult> & Partial<VoiceParseResult>;
+  const fields = (result.fields ?? {}) as Partial<ExtractionResult['fields']>;
 
   const [date, setDate] = useState<string>(fields.date?.value || new Date().toISOString().split('T')[0]);
   const [quantityKg, setQuantityKg] = useState<number>(fields.quantityKg?.value || 0);
-  const [evidenceType, setEvidenceType] = useState<any>(result.suggestedEvidenceType || 'receipt');
+  const [evidenceType, setEvidenceType] = useState<any>(
+    result.suggestedEvidenceType || (result.fields as VoiceParseResult['fields'] | undefined)?.evidenceType?.value || 'note',
+  );
   const [reference, setReference] = useState<string>(fields.reference?.value || '');
-  const [notes, setNotes] = useState<string>(result.extractedText || '');
+  const [notes, setNotes] = useState<string>(result.extractedText || (result.transcript ? `Said: "${result.transcript}"` : ''));
   const [commodity, setCommodity] = useState<any>(fields.commodity?.value || 'mixed');
   const [isUnsure, setIsUnsure] = useState<boolean>(false);
   const [userVerifiedLowConfidence, setUserVerifiedLowConfidence] = useState<boolean>(false);
   const [saving, setSaving] = useState(false);
 
-  const lowConfidenceFields: string[] = result.lowConfidenceFields || [];
+  const lowConfidenceFields: AiAssistInfo['lowConfidenceFields'] = result.lowConfidenceFields || [];
   const hasLowConfidence = lowConfidenceFields.length > 0;
 
   const neutrality = checkNeutrality(notes);
@@ -41,7 +48,7 @@ export function DraftReview({ draft, onConfirm, onDiscard, checkId }: DraftRevie
     if (saving) return;
     setSaving(true);
     try {
-      const record: DistributionRecord = {
+      const record: LocalRecord = {
         id: crypto.randomUUID(),
         checkId,
         date,
@@ -125,9 +132,9 @@ export function DraftReview({ draft, onConfirm, onDiscard, checkId }: DraftRevie
           />
           <span className="text-base font-semibold text-stone-500">kg</span>
         </div>
-        {result.quantityFormula && (
+        {(result.quantityFormula || result.quantityExpression?.formula) && (
           <p className="text-xs text-stone-500 dark:text-stone-400 mt-1.5 font-mono">
-            Line items: {result.quantityFormula}
+            {result.quantityFormula ? `Line items: ${result.quantityFormula}` : `Worked out from what you said: ${result.quantityExpression!.formula}`}
           </p>
         )}
       </div>
@@ -211,7 +218,7 @@ export function DraftReview({ draft, onConfirm, onDiscard, checkId }: DraftRevie
           />
           {!neutrality.ok && (
             <p className="text-xs text-amber-800 dark:text-amber-300 mt-1 font-medium bg-amber-50 dark:bg-amber-950/50 p-2 rounded border border-amber-200 dark:border-amber-800">
-              {neutrality.hint} (Flagged: {neutrality.flaggedTerms.join(', ')})
+              {NEUTRALITY_HINT} (Flagged: {flaggedTermsText(neutrality)})
             </p>
           )}
         </div>

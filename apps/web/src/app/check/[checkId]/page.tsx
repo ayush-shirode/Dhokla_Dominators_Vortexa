@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useCheckId } from '@/lib/routeParams';
 import { Header, BottomNav, StepProgress, ListenButton } from '@/components/Navigation';
 import { SummaryPanel } from '@/components/SummaryPanel';
 import { StatusChip, EvidenceBadge } from '@/components/StatusChip';
@@ -11,18 +12,17 @@ import {
   getLocalCheck,
   getLocalHousehold,
   getLocalRecords,
+  getPendingPhotos,
   saveLocalHousehold,
   deleteLocalRecord,
 } from '@/lib/db';
 import {
-  Household,
-  Check,
-  DistributionRecord,
   DiscrepancySummary,
   computeSummary,
   assessRecords,
   formatKg,
 } from '@repo/shared';
+import type { LocalCheck, LocalHousehold, LocalRecord } from '@/lib/localTypes';
 import {
   Plus,
   Camera,
@@ -38,16 +38,22 @@ import {
 } from 'lucide-react';
 
 export default function CheckLedgerPage() {
-  const params = useParams();
   const router = useRouter();
-  const checkId = params.checkId as string;
+  const checkId = useCheckId();
 
-  const [check, setCheck] = useState<Check | null>(null);
-  const [household, setHousehold] = useState<Household | null>(null);
-  const [records, setRecords] = useState<DistributionRecord[]>([]);
+  const [check, setCheck] = useState<LocalCheck | null>(null);
+  const [household, setHousehold] = useState<LocalHousehold | null>(null);
+  const [records, setRecords] = useState<LocalRecord[]>([]);
   const [summary, setSummary] = useState<DiscrepancySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [pendingPhotoCount, setPendingPhotoCount] = useState(0);
+
+  useEffect(() => {
+    getPendingPhotos(checkId)
+      .then((p) => setPendingPhotoCount(p.length))
+      .catch(() => setPendingPhotoCount(0));
+  }, [checkId]);
 
   const loadAll = async () => {
     setLoading(true);
@@ -86,7 +92,7 @@ export default function CheckLedgerPage() {
 
   const handleConfirmRule = async () => {
     if (!household) return;
-    const updated: Household = {
+    const updated: LocalHousehold = {
       ...household,
       ruleConfirmed: true,
       ruleConfirmedAt: new Date().toISOString(),
@@ -137,6 +143,14 @@ export default function CheckLedgerPage() {
       <StepProgress activeStep={2} checkId={checkId} />
 
       <main className="flex-1 max-w-5xl mx-auto px-4 py-6 w-full space-y-6">
+        {pendingPhotoCount > 0 && (
+          <Link
+            href={`/check/${checkId}/capture`}
+            className="block p-3 rounded border border-teal-300 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 text-xs text-teal-900 dark:text-teal-200"
+          >
+            {pendingPhotoCount} photo{pendingPhotoCount === 1 ? '' : 's'} saved offline {pendingPhotoCount === 1 ? 'is' : 'are'} waiting to be read. Tap to read {pendingPhotoCount === 1 ? 'it' : 'them'} now →
+          </Link>
+        )}
         {/* Header Strip */}
         <div className="bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg p-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
@@ -283,7 +297,7 @@ export default function CheckLedgerPage() {
               ) : (
                 <div className="divide-y divide-dashed divide-stone-300 dark:divide-stone-700">
                   {records.map((rec) => {
-                    const assess = assessments.find((a) => a.id === rec.id);
+                    const assess = assessments.find((a) => a.recordId === rec.id);
                     const isCounted = assess?.counted ?? true;
 
                     return (
@@ -311,12 +325,15 @@ export default function CheckLedgerPage() {
 
                           <EvidenceBadge
                             type={rec.evidenceType}
-                            preview={rec.evidenceContent}
+                            preview={rec.evidenceContent ?? undefined}
                           />
 
                           {!isCounted && (
                             <p className="text-[11px] text-stone-500 italic">
-                              &bull; Not counted: {assess?.reason}
+                              &bull; Not counted:{' '}
+                              {assess?.exclusionReason === 'unrecorded'
+                                ? 'no slip, SMS, photo or note is linked (Unrecorded)'
+                                : 'marked unsure or machine-read values not checked (Unclear)'}
                             </p>
                           )}
                         </div>

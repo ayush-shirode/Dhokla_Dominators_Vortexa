@@ -1,25 +1,27 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { usePathSegment } from '@/lib/routeParams';
 import { Header, BottomNav, ListenButton } from '@/components/Navigation';
 import { RuleCard } from '@/components/RuleCard';
 import { getLocalHousehold, saveLocalHousehold } from '@/lib/db';
 import {
   CardType,
   RuleBasis,
-  Household,
   getRuleDefault,
   INDIAN_STATES,
   checkNeutrality,
   redactSensitiveIds,
 } from '@repo/shared';
+import type { LocalHousehold } from '@/lib/localTypes';
 import { Lock, Save, ArrowLeft, Volume2, ShieldCheck } from 'lucide-react';
 
 export default function HouseholdSetupPage() {
   const router = useRouter();
-  const params = useParams();
-  const editId = params?.id as string | undefined;
+  // /household/<id>/edit → id from the real URL (works with the offline page fallback).
+  const pathId = usePathSegment(2);
+  const editId = pathId && pathId !== 'new' ? pathId : undefined;
 
   const [label, setLabel] = useState('My household');
   const [cardType, setCardType] = useState<CardType>('PHH');
@@ -34,7 +36,7 @@ export default function HouseholdSetupPage() {
   const [ruleConfirmed, setRuleConfirmed] = useState(false);
   const [ruleConfirmedAt, setRuleConfirmedAt] = useState<string | null>(null);
 
-  const [stateCode, setStateCode] = useState('MH');
+  const [stateCode, setStateCode] = useState<string | null>('MH');
   const [district, setDistrict] = useState('Pune');
   const [fpsNo, setFpsNo] = useState('');
   const [fpsName, setFpsName] = useState('');
@@ -72,13 +74,21 @@ export default function HouseholdSetupPage() {
 
   const handleSelectCardType = (type: CardType) => {
     setCardType(type);
+    // AAY/PHH pre-fill the national NFSA scale; CUSTOM keeps the current figures and asks for a source.
     const defaults = getRuleDefault(type);
-    setPerUnitKg(defaults.perUnitKg);
-    setBasis(defaults.basis);
-    setSourceTitle(defaults.sourceTitle);
-    setSourceUrl(defaults.sourceUrl);
-    setSourceNote(defaults.sourceNote);
-    setLastVerified(defaults.lastVerified);
+    if (defaults) {
+      setPerUnitKg(defaults.perUnitKg);
+      setBasis(defaults.basis);
+      setSourceTitle(defaults.sourceTitle);
+      setSourceUrl(defaults.sourceUrl);
+      setSourceNote(defaults.sourceNote);
+      setLastVerified(defaults.lastVerified);
+    } else {
+      setSourceTitle('State / custom scheme');
+      setSourceUrl(null);
+      setSourceNote('');
+      setLastVerified(null);
+    }
     // Any change to cardType un-confirms the rule
     setRuleConfirmed(false);
   };
@@ -110,7 +120,7 @@ export default function HouseholdSetupPage() {
     setSaving(true);
     try {
       const id = editId || crypto.randomUUID();
-      const household: Household = {
+      const household: LocalHousehold = {
         id,
         label,
         cardType,
@@ -157,7 +167,7 @@ export default function HouseholdSetupPage() {
             </h2>
           </div>
           <ListenButton
-            text="Household setup. Select your card type: Antyodaya or Priority Household, enter member count, and explicitly confirm your monthly entitlement rule."
+            text="Household setup. Select your card type: Antyodaya or Priority LocalHousehold, enter member count, and explicitly confirm your monthly entitlement rule."
             label="Listen"
           />
         </div>
@@ -335,10 +345,11 @@ export default function HouseholdSetupPage() {
                   State
                 </label>
                 <select
-                  value={stateCode}
-                  onChange={(e) => setStateCode(e.target.value)}
+                  value={stateCode ?? ''}
+                  onChange={(e) => setStateCode(e.target.value || null)}
                   className="w-full px-3 py-2 text-xs bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded"
                 >
+                  <option value="">Select state…</option>
                   {INDIAN_STATES.map((s) => (
                     <option key={s.code} value={s.code}>
                       {s.name}

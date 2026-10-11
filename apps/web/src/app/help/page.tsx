@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { Header, BottomNav, ListenButton } from '@/components/Navigation';
-import { FAQ, FaqEntry, matchFaq, checkNeutrality } from '@repo/shared';
+import { FAQ, CAUSE_REDIRECT, isCauseQuestion, matchFaq, checkNeutrality } from '@repo/shared';
+import { api } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
 import { Send, Volume2, HelpCircle, Bot, Sparkles } from 'lucide-react';
 
@@ -14,7 +15,8 @@ interface ChatMsg {
 }
 
 export function HelpPageContent() {
-  const { speak } = useApp();
+  const { speak, lang, capabilities, aiConsent, requestCloudConsent } = useApp();
+  const [aiOfferFor, setAiOfferFor] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       id: 'welcome',
@@ -25,53 +27,54 @@ export function HelpPageContent() {
   ]);
   const [input, setInput] = useState('');
 
-  const handleSend = (textToSend?: string) => {
+  const t = (x: { en: string; hi: string }) => (lang === 'hi' ? x.hi : x.en);
+
+  const handleSend = async (textToSend?: string, forceCloud = false) => {
     const q = (textToSend || input).trim();
     if (!q) return;
 
-    const userMsg: ChatMsg = {
-      id: crypto.randomUUID(),
-      sender: 'user',
-      text: q,
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
+    setAiOfferFor(null);
+    if (!forceCloud) {
+      const userMsg: ChatMsg = { id: crypto.randomUUID(), sender: 'user', text: q };
+      setMessages((prev) => [...prev, userMsg]);
+    }
     if (!textToSend) setInput('');
+    const add = (text: string, source: ChatMsg['source']) =>
+      setMessages((prev) => [...prev, { id: crypto.randomUUID(), sender: 'assistant', text, source }]);
 
-    // Check neutrality guardrail (Principle P5 / P6)
-    const neutrality = checkNeutrality(q);
-    if (!neutrality.ok) {
-      setTimeout(() => {
-        const reply: ChatMsg = {
-          id: crypto.randomUUID(),
-          sender: 'assistant',
-          text: 'RationSaathi calculates plain arithmetic differences between your entitlement and received grain. We explain rules and help you prepare grievances, but we never allege wrongdoing or assign blame. Please describe what you received.',
-          source: 'guardrail',
-        };
-        setMessages((prev) => [...prev, reply]);
-      }, 300);
+    // Scope guardrail (Spec §5.6): never discuss why a specific difference happened or who is to blame.
+    if (isCauseQuestion(q) || !checkNeutrality(q).ok) {
+      add(t(CAUSE_REDIRECT), 'guardrail');
       return;
     }
 
-    // Match FAQ locally (works offline)
-    const matched = matchFaq(q);
-    setTimeout(() => {
-      let replyText = '';
-      if (matched) {
-        replyText = matched.entry.answer;
-      } else {
-        replyText =
-          'I am an informational assistant for the National Food Security Act (NFSA). You can check your entitlement rules (PHH: 5 kg per member, AAY: 35 kg per family), log records with slips, and prepare complaint descriptions. Check our FAQ chips below for common topics.';
-      }
+    // Online: the server answers from the FAQ first and applies the same guardrails.
+    // AI answers only with consent ("Always allow" in Settings, or a one-off yes).
+    try {
+      const allowCloud = forceCloud || (capabilities.cloudAi && aiConsent.cloudAssist);
+      const reply = await api.ai.chat({ messages: [{ role: 'user', content: q }], language: lang, allowCloud });
+      add(reply.reply, reply.source === 'ai' ? 'ai' : reply.source === 'guardrail' ? 'guardrail' : 'faq');
+      if (reply.source === 'fallback' && capabilities.cloudAi && !allowCloud) setAiOfferFor(q);
+      return;
+    } catch {
+      /* offline: answer locally */
+    }
 
-      const reply: ChatMsg = {
-        id: crypto.randomUUID(),
-        sender: 'assistant',
-        text: replyText,
-        source: matched ? 'faq' : 'ai',
-      };
-      setMessages((prev) => [...prev, reply]);
-    }, 400);
+    const matched = matchFaq(q, lang);
+    add(
+      matched
+        ? t(matched.entry.answer)
+        : lang === 'hi'
+          ? 'मैं राशनसाथी के इस्तेमाल और शिकायत की प्रक्रिया से जुड़े सवालों के जवाब दे सकता हूँ। नीचे दिए सवालों में से कोई चुनें।'
+          : 'I can answer questions about how RationSaathi works and the grievance process. Try one of the questions below.',
+      'faq',
+    );
+  };
+
+  const askAi = async () => {
+    if (!aiOfferFor) return;
+    const q = aiOfferFor;
+    if (await requestCloudConsent('cloudAssist')) await handleSend(q, true);
   };
 
   return (
@@ -94,6 +97,15 @@ export function HelpPageContent() {
           />
         </div>
 
+        {aiOfferFor && (
+          <div className="p-3 rounded border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-xs flex items-center justify-between gap-3">
+            <span>No built-in answer matched. Ask the AI assistant? It explains process only.</span>
+            <button type="button" onClick={askAi} className="px-3 py-1.5 bg-teal-700 text-white rounded font-medium shrink-0">
+              Ask AI
+            </button>
+          </div>
+        )}
+
         {/* Quick Question Chips */}
         <div>
           <span className="text-[10px] uppercase font-bold text-stone-500 block mb-1.5">
@@ -104,10 +116,10 @@ export function HelpPageContent() {
               <button
                 key={f.id}
                 type="button"
-                onClick={() => handleSend(f.question)}
+                onClick={() => handleSend(t(f.question))}
                 className="px-2.5 py-1 text-xs bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 hover:border-teal-600 rounded-full text-stone-700 dark:text-stone-300 font-medium transition-colors"
               >
-                {f.question}
+                {t(f.question)}
               </button>
             ))}
           </div>

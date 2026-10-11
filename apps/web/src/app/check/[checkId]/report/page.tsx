@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useCheckId } from '@/lib/routeParams';
 import { Header, BottomNav, StepProgress, ListenButton } from '@/components/Navigation';
 import { StatusChip } from '@/components/StatusChip';
 import {
@@ -14,10 +15,9 @@ import {
   getLocalFiling,
 } from '@/lib/db';
 import { useApp } from '@/context/AppContext';
+import { TranslatePanel } from '@/components/TranslatePanel';
+import { api, flushOutbox } from '@/lib/api';
 import {
-  Household,
-  Check,
-  DistributionRecord,
   Report,
   Filing,
   buildReportSnapshot,
@@ -25,7 +25,10 @@ import {
   formatKg,
   POSSIBLE_CAUSES,
   DISCLAIMER,
+  SUPPORTED_LANGUAGES,
+  type LanguageCode,
 } from '@repo/shared';
+import type { LocalCheck, LocalHousehold, LocalRecord } from '@/lib/localTypes';
 import {
   Download,
   Share2,
@@ -40,18 +43,19 @@ import {
 
 export default function ReportPage() {
   const router = useRouter();
-  const params = useParams();
-  const checkId = params.checkId as string;
+  const checkId = useCheckId();
   const { speak } = useApp();
 
-  const [check, setCheck] = useState<Check | null>(null);
-  const [household, setHousehold] = useState<Household | null>(null);
-  const [records, setRecords] = useState<DistributionRecord[]>([]);
+  const [check, setCheck] = useState<LocalCheck | null>(null);
+  const [household, setHousehold] = useState<LocalHousehold | null>(null);
+  const [records, setRecords] = useState<LocalRecord[]>([]);
   const [savedReport, setSavedReport] = useState<Report | null>(null);
   const [filing, setFiling] = useState<Filing | null>(null);
   const [reportLang, setReportLang] = useState<'en' | 'hi'>('en');
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [extraTranslations, setExtraTranslations] = useState<LanguageCode[]>([]);
 
   useEffect(() => {
     getLocalCheck(checkId).then((chk) => {
@@ -75,42 +79,105 @@ export default function ReportPage() {
     );
   }
 
+  // Principle 1: no report until the user has confirmed the rule.
+  if (!household.ruleConfirmed || !household.ruleConfirmedAt) {
+    return (
+      <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col font-sans pb-24">
+        <Header />
+        <main className="flex-1 max-w-xl mx-auto px-4 py-10 w-full">
+          <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-lg p-4 text-xs space-y-3">
+            <p className="font-bold text-amber-950 dark:text-amber-200">Confirm the rule before we can make a report</p>
+            <p className="text-amber-900 dark:text-amber-300">The calculation only uses a rule you have seen and accepted.</p>
+            <Link href={`/household/${household.id}/edit`} className="inline-block px-3 py-1.5 bg-teal-700 text-white rounded font-medium">
+              Review the rule
+            </Link>
+          </div>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
+
   // Generate preview snapshot locally using shared engine
   const snapshot = buildReportSnapshot({
     household,
     period: check.period,
     records,
-    ruleConfirmedAt: household.ruleConfirmedAt || new Date().toISOString(),
+    ruleConfirmedAt: household.ruleConfirmedAt,
   });
 
-  const fullReportText = renderReportText(snapshot, reportLang, {
-    reportId: savedReport?.id,
-    version: savedReport?.version || 1,
-    contentHash: savedReport?.contentHash || 'PREVIEW-LOCAL-HASH',
-    filing,
-  });
+  // A saved report is an immutable server snapshot. If records or the rule changed since, the
+  // on-screen version is a new preview until it is saved again.
+  const savedIsCurrent =
+    !!savedReport &&
+    JSON.stringify(savedReport.snapshot.summary.arithmetic) === JSON.stringify(snapshot.summary.arithmetic) &&
+    JSON.stringify(savedReport.snapshot.records.map((r) => [r.id, r.evidenceContent, r.photoId])) ===
+      JSON.stringify(snapshot.records.map((r) => [r.id, r.evidenceContent, r.photoId]));
+
+  const fullReportText = savedIsCurrent
+    ? renderReportText(savedReport!.snapshot, reportLang, {
+        reportId: savedReport!.id,
+        version: savedReport!.version,
+        contentHash: savedReport!.contentHash,
+        filing,
+      })
+    : renderReportText(snapshot, reportLang, { filing });
 
   const handleSaveReport = async () => {
     setSaving(true);
+    setSaveError(null);
     try {
-      const newReport: Report = {
-        id: crypto.randomUUID(),
-        checkId,
-        version: (savedReport?.version || 0) + 1,
-        language: reportLang,
-        snapshot,
-        text: fullReportText,
-        contentHash: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
-        createdAt: new Date().toISOString(),
-      };
-      await saveLocalReport(newReport);
-      setSavedReport(newReport);
-
-      // Update check status
+      // The official snapshot (id, version, SHA-256 hash) is made by the server from synced data.
+      await flushOutbox();
+      const report = await api.reports.create(checkId, { language: reportLang });
+      await saveLocalReport(report);
+      setSavedReport(report);
       const { saveLocalCheck } = await import('@/lib/db');
-      await saveLocalCheck({ ...check, status: check.status === 'filed' ? 'filed' : 'reported' });
+      await saveLocalCheck({ ...check, status: check.status === 'filed' ? 'filed' : 'reported' }, false);
+    } catch (err: any) {
+      setSaveError(
+        err?.code === 'NEUTRALITY_CHECK_FAILED'
+          ? 'Some notes say who caused a difference. Please edit them to describe only what was received.'
+          : err?.code === 'RULE_NOT_CONFIRMED'
+            ? 'The rule is not confirmed on the server yet. Open the rule, confirm it, and try again.'
+            : 'Saving the official report needs an internet connection. Your preview is shown below and can be copied.',
+      );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const downloadExport = async (format: 'html' | 'txt', language: LanguageCode) => {
+    if (!savedReport) return;
+    try {
+      const blob = await api.reports.export(savedReport.id, format, language);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `RationSaathi-Report-${check.period}-v${savedReport.version}-${language}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setSaveError('Downloading a translation needs an internet connection.');
+    }
+  };
+
+  const translatedLangs: LanguageCode[] = savedReport
+    ? [...new Set([...savedReport.translations.map((t) => t.language), ...extraTranslations])]
+    : [];
+
+  const handleDownloadPdf = async () => {
+    if (!savedReport) return;
+    try {
+      const blob = await api.reports.export(savedReport.id, 'pdf', reportLang);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `RationSaathi-Report-${check.period}-v${savedReport.version}-${reportLang}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setSaveError('The PDF needs an internet connection. Use "Download .txt" or "Print" instead.');
     }
   };
 
@@ -188,6 +255,16 @@ export default function ReportPage() {
               <span>Download .txt</span>
             </button>
 
+            {savedIsCurrent && (
+              <button
+                onClick={handleDownloadPdf}
+                className="px-3 py-1.5 bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded text-xs font-medium flex items-center gap-1.5 hover:bg-stone-100 transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download PDF</span>
+              </button>
+            )}
+
             <button
               onClick={() => window.print()}
               className="px-3 py-1.5 bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded text-xs font-medium flex items-center gap-1.5 hover:bg-stone-100 transition-colors"
@@ -198,12 +275,18 @@ export default function ReportPage() {
           </div>
         </div>
 
+        {saveError && (
+          <p className="text-xs bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded p-3 text-stone-700 dark:text-stone-300">
+            {saveError}
+          </p>
+        )}
+
         {/* Save Report Banner if Preview */}
-        {!savedReport ? (
+        {!savedIsCurrent ? (
           <div className="bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 rounded-lg p-3.5 flex items-center justify-between gap-3 text-xs">
             <div>
               <span className="font-bold text-amber-950 dark:text-amber-200">
-                Preview &mdash; not yet saved
+                {savedReport ? `Changed since version ${savedReport.version} — preview` : 'Preview — not yet saved'}
               </span>
               <p className="text-amber-800 dark:text-amber-300">
                 Tap &ldquo;Save report&rdquo; to freeze an official version with a cryptographic integrity hash.
@@ -214,14 +297,14 @@ export default function ReportPage() {
               disabled={saving}
               className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white font-semibold rounded shrink-0 shadow-xs"
             >
-              Save Report
+              {saving ? 'Saving…' : savedReport ? 'Save new version' : 'Save Report'}
             </button>
           </div>
         ) : (
           <div className="bg-teal-50 dark:bg-teal-950/40 border border-teal-300 dark:border-teal-800 rounded-lg p-3 text-xs text-teal-900 dark:text-teal-200 flex items-center justify-between">
             <span className="font-semibold flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-teal-700" />
-              Official Report v{savedReport.version} (Hash: {savedReport.contentHash.slice(0, 12)}...)
+              Official Report v{savedReport!.version} (Hash: {savedReport!.contentHash.slice(0, 12)}...)
             </span>
             <Link
               href={`/check/${checkId}/grievance`}
@@ -230,6 +313,34 @@ export default function ReportPage() {
               <span>Continue to Grievance Helper</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
+          </div>
+        )}
+
+        {savedIsCurrent && savedReport && (
+          <div className="space-y-2">
+            <TranslatePanel
+              purpose="report"
+              reportId={savedReport.id}
+              onApplied={(_, language) => setExtraTranslations((prev) => [...prev, language])}
+            />
+            {translatedLangs.length > 0 && (
+              <div className="text-xs bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded p-3 space-y-1.5">
+                <span className="font-semibold block">Confirmed translations</span>
+                {translatedLangs.map((l) => (
+                  <div key={l} className="flex items-center justify-between gap-2">
+                    <span>{SUPPORTED_LANGUAGES.find((x) => x.code === l)?.nativeName ?? l}</span>
+                    <span className="flex gap-2">
+                      <button type="button" onClick={() => downloadExport('html', l)} className="underline">
+                        Printable page
+                      </button>
+                      <button type="button" onClick={() => downloadExport('txt', l)} className="underline">
+                        Text
+                      </button>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -262,11 +373,11 @@ export default function ReportPage() {
               </div>
               <div>
                 <span className="text-stone-400 block text-[10px]">State &amp; District</span>
-                <span className="font-semibold text-stone-800 dark:text-stone-200">{snapshot.household.stateCode} {snapshot.household.district ? `/ ${snapshot.household.district}` : ''}</span>
+                <span className="font-semibold text-stone-800 dark:text-stone-200">{household.stateCode ?? '—'} {household.district ? `/ ${household.district}` : ''}</span>
               </div>
               <div>
                 <span className="text-stone-400 block text-[10px]">FPS Shop</span>
-                <span className="font-semibold text-stone-800 dark:text-stone-200">{snapshot.household.fpsNo || 'N/A'}</span>
+                <span className="font-semibold text-stone-800 dark:text-stone-200">{household.fpsNo || 'N/A'}</span>
               </div>
             </div>
           </div>
@@ -277,7 +388,7 @@ export default function ReportPage() {
               Entitlement Rule Used for Calculation
             </span>
             <p className="font-mono text-sm font-bold text-stone-900 dark:text-stone-100">
-              {snapshot.rule.formula}
+              {snapshot.summary.entitlement.formula}
             </p>
             <p className="text-stone-500 text-[11px]">
               Source: {snapshot.rule.sourceTitle} &bull; Last verified: {snapshot.rule.lastVerified || 'not verified yet'} &bull; Confirmed by user on {snapshot.rule.confirmedAt.split('T')[0]}

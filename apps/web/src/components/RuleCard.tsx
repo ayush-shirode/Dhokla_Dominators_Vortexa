@@ -24,7 +24,7 @@ export function RuleCard({
   onConfirm,
   onEdit,
 }: RuleCardProps) {
-  const { formula, entitledKg } = computeEntitlement({
+  const { formula, kg: entitledKg } = computeEntitlement({
     cardType,
     members,
     rule,

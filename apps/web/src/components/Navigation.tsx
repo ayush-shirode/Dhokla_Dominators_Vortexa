@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { LanguageCode } from '@repo/shared';
 import { useApp } from '@/context/AppContext';
 import {
   Volume2,
@@ -17,7 +18,7 @@ import {
 } from 'lucide-react';
 
 export function Header() {
-  const { isOnline, syncStatus, syncNow, isSpeaking, stopSpeaking } = useApp();
+  const { isOnline, syncStatus, syncNow, isSpeaking, stopSpeaking, syncNotice, dismissSyncNotice, t, lang } = useApp();
 
   return (
     <header className="sticky top-0 z-40 bg-stone-50/95 dark:bg-stone-900/95 border-b border-stone-200 dark:border-stone-800 backdrop-blur">
@@ -31,7 +32,7 @@ export function Header() {
               RationSaathi
             </h1>
             <p className="text-[10px] text-stone-500 dark:text-stone-400 -mt-0.5 font-medium">
-              राशनसाथी &bull; Entitlement Helper
+              {lang === 'en' ? 'राशनसाथी' : t('appName')} &bull; {t('taglineShort')}
             </p>
           </div>
         </Link>
@@ -45,7 +46,7 @@ export function Header() {
               title="Stop audio reading"
             >
               <VolumeX className="w-3.5 h-3.5" />
-              <span>Stop audio</span>
+              <span>{t('actions.stopAudio')}</span>
             </button>
           )}
 
@@ -59,40 +60,51 @@ export function Header() {
               syncStatus === 'syncing' ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin text-teal-600" />
-                  <span className="hidden sm:inline">Syncing...</span>
+                  <span className="hidden sm:inline">{t('sync.syncing')}</span>
                 </>
               ) : syncStatus === 'synced' ? (
                 <>
                   <Cloud className="w-3.5 h-3.5 text-teal-600" />
-                  <span className="hidden sm:inline">Backed up</span>
+                  <span className="hidden sm:inline">{t('sync.synced')}</span>
                 </>
               ) : (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 text-amber-600" />
-                  <span className="hidden sm:inline">Saved on phone</span>
+                  <span className="hidden sm:inline">{t('sync.pending')}</span>
                 </>
               )
             ) : (
               <>
                 <CloudOff className="w-3.5 h-3.5 text-stone-400" />
-                <span className="hidden sm:inline">Saved on phone (offline)</span>
+                <span className="hidden sm:inline">{t('sync.offline')}</span>
               </>
             )}
           </button>
         </div>
       </div>
+      {syncNotice && (
+        <div role="status" aria-live="polite" className="border-t border-stone-200 dark:border-stone-800 bg-amber-50 dark:bg-amber-950/40">
+          <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-between gap-3 text-xs text-amber-950 dark:text-amber-200">
+            <span>{syncNotice}</span>
+            <button type="button" onClick={dismissSyncNotice} className="font-semibold underline shrink-0">
+              {t('common.ok')}
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { t } = useApp();
 
   const navItems = [
-    { href: '/', label: 'Home', icon: Home },
-    { href: '/channels', label: 'Helplines', icon: BookOpen },
-    { href: '/help', label: 'Help', icon: HelpCircle },
-    { href: '/settings', label: 'Settings', icon: Settings },
+    { href: '/', label: t('nav.home'), icon: Home },
+    { href: '/channels', label: t('nav.helplines'), icon: BookOpen },
+    { href: '/help', label: t('nav.help'), icon: HelpCircle },
+    { href: '/settings', label: t('nav.settings'), icon: Settings },
   ];
 
   return (
@@ -128,11 +140,12 @@ export function StepProgress({
   activeStep: 1 | 2 | 3 | 4;
   checkId: string;
 }) {
+  const { t } = useApp();
   const steps = [
-    { num: 1, label: '1 Rule', href: checkId ? `/check/${checkId}` : '#' },
-    { num: 2, label: '2 Records', href: checkId ? `/check/${checkId}` : '#' },
-    { num: 3, label: '3 Report', href: checkId ? `/check/${checkId}/report` : '#' },
-    { num: 4, label: '4 Grievance', href: checkId ? `/check/${checkId}/grievance` : '#' },
+    { num: 1, label: t('steps.rule'), href: checkId ? `/check/${checkId}` : '#' },
+    { num: 2, label: t('steps.records'), href: checkId ? `/check/${checkId}` : '#' },
+    { num: 3, label: t('steps.report'), href: checkId ? `/check/${checkId}/report` : '#' },
+    { num: 4, label: t('steps.grievance'), href: checkId ? `/check/${checkId}/grievance` : '#' },
   ];
 
   return (
@@ -162,17 +175,22 @@ export function StepProgress({
   );
 }
 
-export function ListenButton({ text, label = 'Listen' }: { text: string; label?: string }) {
-  const { speak } = useApp();
+/** Text in Latin script only (e.g. the English UI strings). */
+const LATIN_ONLY = /^[\u0000-\u024F\u2000-\u206F\u20B9\u2212\u00D7\s]*$/;
+
+export function ListenButton({ text, label, lang }: { text: string; label?: string; lang?: LanguageCode }) {
+  const { speak, t } = useApp();
+  // English text is read with an English voice; other scripts with the chosen language's voice.
+  const voice = lang ?? (LATIN_ONLY.test(text) ? 'en' : undefined);
   return (
     <button
       type="button"
-      onClick={() => speak(text)}
+      onClick={() => speak(text, voice)}
       className="inline-flex items-center gap-1 text-xs text-teal-700 dark:text-teal-400 hover:text-teal-800 hover:underline font-medium p-1 rounded transition-colors"
       title="Listen to this section"
     >
       <Volume2 className="w-3.5 h-3.5" />
-      <span>{label}</span>
+      <span>{label && label !== 'Listen' ? label : t('actions.listen')}</span>
     </button>
   );
 }

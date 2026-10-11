@@ -1,12 +1,18 @@
 'use client';
 
 import React from 'react';
-import { LabelInfo, LABEL_INFO } from '@repo/shared';
+import { LABEL_INFO, type OverallLabel } from '@repo/shared';
 import { FileText, MessageSquare, Image, StickyNote, HelpCircle } from 'lucide-react';
 
-export function StatusChip({ label }: { label: 'Shortfall' | 'Late' | 'Unrecorded' | 'Unclear' | 'Recorded' }) {
-  const normKey = label.toLowerCase();
-  const info: LabelInfo = LABEL_INFO[normKey] || LABEL_INFO.recorded;
+type ChipLabel = 'Shortfall' | 'Late' | 'Unrecorded' | 'Unclear' | 'Recorded';
+
+const RECORDED = { name: 'Recorded', explanation: 'Evidence is linked and this record is counted.' };
+
+/** Accepts display labels ("Late") or the API's lowercase labels ("late"). */
+export function StatusChip({ label, lang = 'en' }: { label: ChipLabel | OverallLabel | 'recorded'; lang?: 'en' | 'hi' }) {
+  const code = label.toLowerCase() as OverallLabel | 'recorded';
+  const text = code === 'recorded' ? RECORDED : (LABEL_INFO[code]?.[lang] ?? RECORDED);
+  const info = { code, title: text.name, explanation: text.explanation };
 
   // Strict neutral tones per specification (no alarm red, no sirens, no skull icons)
   let colorClass = 'bg-stone-200 text-stone-700 border-stone-300';

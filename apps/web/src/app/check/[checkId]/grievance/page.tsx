@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useCheckId } from '@/lib/routeParams';
 import { Header, BottomNav, StepProgress, ListenButton } from '@/components/Navigation';
 import {
   getLocalCheck,
@@ -15,17 +16,18 @@ import {
   saveLocalCheck,
 } from '@/lib/db';
 import { useApp } from '@/context/AppContext';
+import { TranslatePanel } from '@/components/TranslatePanel';
 import {
-  Household,
-  Check,
-  DistributionRecord,
   Report,
   Filing,
   buildReportSnapshot,
   generateGrievanceDescription,
   checkNeutrality,
-  INDIAN_STATES,
+  stateName,
+  type LanguageCode,
 } from '@repo/shared';
+import { api } from '@/lib/api';
+import type { LocalCheck, LocalHousehold, LocalRecord } from '@/lib/localTypes';
 import {
   Copy,
   CheckCircle2,
@@ -37,16 +39,16 @@ import {
   Trash2,
   RotateCcw,
 } from 'lucide-react';
+import { NEUTRALITY_HINT, flaggedTermsText } from '@/lib/neutrality';
 
 export default function GrievanceHelperPage() {
   const router = useRouter();
-  const params = useParams();
-  const checkId = params.checkId as string;
+  const checkId = useCheckId();
   const { speak } = useApp();
 
-  const [check, setCheck] = useState<Check | null>(null);
-  const [household, setHousehold] = useState<Household | null>(null);
-  const [records, setRecords] = useState<DistributionRecord[]>([]);
+  const [check, setCheck] = useState<LocalCheck | null>(null);
+  const [household, setHousehold] = useState<LocalHousehold | null>(null);
+  const [records, setRecords] = useState<LocalRecord[]>([]);
   const [filing, setFiling] = useState<Filing | null>(null);
 
   const [description, setDescription] = useState('');
@@ -58,6 +60,32 @@ export default function GrievanceHelperPage() {
   const [filingRef, setFilingRef] = useState('');
   const [filingDate, setFilingDate] = useState(new Date().toISOString().split('T')[0]);
   const [isSavingFiling, setIsSavingFiling] = useState(false);
+  const [filingNote, setFilingNote] = useState<string | null>(null);
+  // Official portal from the API's sourced directory; nfsa.gov.in when offline or not yet synced.
+  const [languageAdvice, setLanguageAdvice] = useState<string | null>(null);
+  const [descriptionLang, setDescriptionLang] = useState<string>('en');
+  const [portal, setPortal] = useState<{ url: string; statusUrl: string | null; channelId: string | null }>({
+    url: 'https://nfsa.gov.in/',
+    statusUrl: null,
+    channelId: null,
+  });
+
+  useEffect(() => {
+    api.grievance
+      .get(checkId)
+      .then((g) => {
+        setPortal({ url: g.portal.url, statusUrl: g.portal.statusUrl, channelId: g.portal.channelId });
+        setLanguageAdvice(g.languageAdvice.message);
+        // Keep a translated or user-edited description saved on the server.
+        if (g.descriptionSource !== 'generated') {
+          setDescription(g.description);
+          setDescriptionLang(g.descriptionLanguage);
+        }
+      })
+      .catch(() => {
+        /* offline or not synced yet: keep the default */
+      });
+  }, [checkId]);
 
   useEffect(() => {
     getLocalCheck(checkId).then((chk) => {
@@ -98,6 +126,8 @@ export default function GrievanceHelperPage() {
     );
   }
 
+  const stateLabel = stateName(household.stateCode) ?? household.stateCode ?? '';
+
   const copyToClipboard = async (fieldName: string, text: string) => {
     await navigator.clipboard.writeText(text);
     setCopiedField(fieldName);
@@ -105,7 +135,7 @@ export default function GrievanceHelperPage() {
   };
 
   const handleCopyAll = async () => {
-    const allText = `State: ${household.stateCode}
+    const allText = `State: ${stateLabel}
 District: ${household.district || 'N/A'}
 Ration Card Number: ${household.rationCardNo || 'N/A'}
 FPS Number: ${household.fpsNo || 'N/A'}
@@ -117,7 +147,7 @@ ${description}`;
   };
 
   const handlePlayReadBack = () => {
-    speak(description);
+    speak(description, descriptionLang as LanguageCode);
     setReadBackDone(true);
   };
 
@@ -127,14 +157,30 @@ ${description}`;
 
     setIsSavingFiling(true);
     try {
-      const newFiling: Filing = {
+      const now = new Date().toISOString();
+      let newFiling: Filing = {
         id: crypto.randomUUID(),
         checkId,
+        reportId: null,
         referenceNumber: filingRef.trim(),
         filedDate: filingDate,
-        portalUrl: stateInfo?.portalUrl,
-        createdAt: new Date().toISOString(),
+        portalUrl: portal.url,
+        channelId: portal.channelId,
+        createdAt: now,
+        updatedAt: now,
       };
+      // Filings are not part of /sync/batch: send directly, keep a local copy either way.
+      try {
+        newFiling = await api.filing.put(checkId, {
+          referenceNumber: newFiling.referenceNumber,
+          filedDate: newFiling.filedDate,
+          portalUrl: newFiling.portalUrl,
+          channelId: newFiling.channelId,
+        });
+        setFilingNote(null);
+      } catch {
+        setFilingNote('Saved on this phone. It will need to be saved again when you are online.');
+      }
       await saveLocalFiling(newFiling);
       setFiling(newFiling);
 
@@ -149,6 +195,9 @@ ${description}`;
   const handleDeleteFiling = async () => {
     if (window.confirm('Remove filing reference?')) {
       await deleteLocalFiling(checkId);
+      api.filing.delete(checkId).catch(() => {
+        /* offline or never synced */
+      });
       setFiling(null);
       setFilingRef('');
       await saveLocalCheck({ ...check, status: 'reported' });
@@ -156,8 +205,7 @@ ${description}`;
     }
   };
 
-  const stateInfo = INDIAN_STATES.find((s) => s.code === household.stateCode);
-  const portalUrl = stateInfo?.portalUrl || 'https://nfsa.gov.in/';
+  const portalUrl = portal.url;
 
   const canOpenPortal = readBackDone || hasSelfRead;
 
@@ -233,11 +281,11 @@ ${description}`;
             <div className="flex items-center justify-between p-2.5 rounded bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 text-xs">
               <div>
                 <span className="text-[10px] text-stone-400 uppercase font-semibold block">State</span>
-                <span className="font-semibold text-stone-800 dark:text-stone-200">{stateInfo?.name || household.stateCode}</span>
+                <span className="font-semibold text-stone-800 dark:text-stone-200">{stateLabel}</span>
               </div>
               <button
                 type="button"
-                onClick={() => copyToClipboard('state', stateInfo?.name || household.stateCode)}
+                onClick={() => copyToClipboard('state', stateLabel)}
                 className="px-2.5 py-1 bg-stone-200 dark:bg-stone-800 rounded hover:bg-stone-300 text-[11px] font-medium"
               >
                 {copiedField === 'state' ? 'Copied ✓' : 'Copy'}
@@ -327,15 +375,35 @@ ${description}`;
               <textarea
                 rows={6}
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  // The user must hear (or read) exactly what will be submitted.
+                  setReadBackDone(false);
+                  setHasSelfRead(false);
+                }}
                 className="w-full px-3 py-2 text-xs font-mono bg-stone-50 dark:bg-stone-950 border border-stone-300 dark:border-stone-700 rounded focus:outline-none focus:ring-2 focus:ring-teal-600"
               />
               {!neutrality.ok && (
                 <p className="text-xs text-amber-800 dark:text-amber-300 p-2 rounded bg-amber-50 dark:bg-amber-950 border border-amber-300">
-                  {neutrality.hint} (Flagged: {neutrality.flaggedTerms.join(', ')})
+                  {NEUTRALITY_HINT} (Flagged: {flaggedTermsText(neutrality)})
                 </p>
               )}
+              {descriptionLang !== 'en' && (
+                <p className="text-[11px] text-stone-500">Description language: {descriptionLang}</p>
+              )}
             </div>
+
+            <TranslatePanel
+              purpose="grievance_description"
+              checkId={checkId}
+              advice={languageAdvice}
+              onApplied={(text, language) => {
+                setDescription(text);
+                setDescriptionLang(language);
+                setReadBackDone(false);
+                setHasSelfRead(false);
+              }}
+            />
           </div>
         </div>
 

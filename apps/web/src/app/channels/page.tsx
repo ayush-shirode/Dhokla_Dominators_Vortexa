@@ -1,75 +1,36 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Header, BottomNav, ListenButton } from '@/components/Navigation';
 import { INDIAN_STATES, GrievanceChannel } from '@repo/shared';
-import { Phone, ExternalLink, ShieldCheck, AlertCircle, Building2 } from 'lucide-react';
+import { Phone, ExternalLink } from 'lucide-react';
+import { api } from '@/lib/api';
 
 export default function ChannelsPage() {
   const [selectedState, setSelectedState] = useState('MH');
+  const [channels, setChannels] = useState<GrievanceChannel[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const channels: GrievanceChannel[] = [
-    {
-      id: 'nat-portal',
-      stateCode: 'ALL',
-      kind: 'portal',
-      name: 'National Food Security Portal (Annavitran)',
-      value: 'https://nfsa.gov.in/',
-      notes: 'Central government food security grievance portal',
-      acceptedLanguages: ['en', 'hi'],
-      sourceUrl: 'https://nfsa.gov.in/',
-      lastVerified: '2026-10-01',
-      verificationStatus: 'verified',
-    },
-    {
-      id: 'nat-helpline',
-      stateCode: 'ALL',
-      kind: 'helpline',
-      name: 'National PDS Toll-Free Helpline',
-      value: '1967',
-      notes: 'Available across all states for ration entitlement queries',
-      acceptedLanguages: ['en', 'hi'],
-      sourceUrl: 'https://nfsa.gov.in/',
-      lastVerified: '2026-10-01',
-      verificationStatus: 'verified',
-    },
-    {
-      id: 'state-portal',
-      stateCode: selectedState,
-      kind: 'portal',
-      name: `${INDIAN_STATES.find((s) => s.code === selectedState)?.name} Food & Civil Supplies Portal`,
-      value: INDIAN_STATES.find((s) => s.code === selectedState)?.portalUrl || 'https://nfsa.gov.in/',
-      notes: 'State grievance redressal portal and ration card registry',
-      acceptedLanguages: ['en', 'hi'],
-      sourceUrl: 'https://nfsa.gov.in/portal/State_UT_Portals',
-      lastVerified: '2026-10-01',
-      verificationStatus: 'verified',
-    },
-    {
-      id: 'state-helpline',
-      stateCode: selectedState,
-      kind: 'helpline',
-      name: `${INDIAN_STATES.find((s) => s.code === selectedState)?.name} State Toll-Free Number`,
-      value: INDIAN_STATES.find((s) => s.code === selectedState)?.helpline || '1967',
-      notes: 'State food commissioner helpline',
-      acceptedLanguages: ['en', 'hi'],
-      sourceUrl: 'https://nfsa.gov.in/',
-      lastVerified: '2026-10-01',
-      verificationStatus: 'verified',
-    },
-    {
-      id: 'dgro-office',
-      stateCode: selectedState,
-      kind: 'dgro',
-      name: 'District Grievance Redressal Officer (DGRO)',
-      value: 'Collector / Additional Collector Office',
-      notes: 'Under Section 15 of NFSA 2013, the DGRO hears statutory appeals',
-      acceptedLanguages: ['en', 'hi'],
-      sourceUrl: 'https://nfsa.gov.in/',
-      lastVerified: null,
-      verificationStatus: 'unverified',
-    },
-  ];
+  // The directory comes from the API so every entry carries its source, last-verified date and
+  // verification status (Spec §4.4). Nothing is hard-coded or marked verified on the client.
+  useEffect(() => {
+    let cancelled = false;
+    setLoadError(null);
+    api.channels
+      .list(selectedState)
+      .then((list) => {
+        if (!cancelled) setChannels(list);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setChannels([]);
+          setLoadError('The channel directory could not be loaded. Connect to the internet and try again.');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedState]);
 
   return (
     <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col font-sans pb-24">
@@ -86,7 +47,7 @@ export default function ChannelsPage() {
             </p>
           </div>
           <ListenButton
-            text="Grievance channel directory. Select your state to see verified portals and helplines."
+            text="Grievance channel directory. Select your state to see portals and helplines, with their sources."
             label="Listen"
           />
         </div>
@@ -111,9 +72,14 @@ export default function ChannelsPage() {
 
         {/* Channel Cards */}
         <div className="space-y-3">
+          {loadError && (
+            <p className="text-xs text-stone-600 dark:text-stone-300 bg-white dark:bg-stone-900 p-3 rounded border border-stone-200 dark:border-stone-800">
+              {loadError}
+            </p>
+          )}
           {channels.map((ch) => {
             const isPhone = ch.kind === 'helpline';
-            const isLink = ch.kind === 'portal';
+            const isLink = /^https?:\/\//.test(ch.value);
 
             return (
               <div
@@ -123,7 +89,7 @@ export default function ChannelsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <span className="text-[10px] uppercase font-bold tracking-wider text-teal-800 dark:text-teal-400">
-                      {ch.kind.toUpperCase()}
+                      {ch.kind.replace(/_/g, ' ').toUpperCase()}
                     </span>
                     <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
                       {ch.name}
@@ -168,6 +134,9 @@ export default function ChannelsPage() {
                 </div>
 
                 <p className="text-xs text-stone-500 leading-normal">{ch.notes}</p>
+                <p className="text-[11px] text-stone-400 leading-normal">
+                  Accepted languages: {ch.acceptedLanguages ? ch.acceptedLanguages.join(', ') : 'unknown'} · Source: {ch.sourceNote}
+                </p>
 
                 <div className="pt-2 border-t border-stone-100 dark:border-stone-800 text-[11px] text-stone-400 flex items-center justify-between">
                   <span>Last verified: {ch.lastVerified || 'not verified yet'}</span>
@@ -189,7 +158,7 @@ export default function ChannelsPage() {
 
         {/* Directory Disclaimer */}
         <p className="text-[11px] text-stone-500 italic p-3 bg-stone-50 dark:bg-stone-900 rounded border border-stone-200 dark:border-stone-800 leading-relaxed">
-          This directory provides verified statutory channels where available. Helplines and URLs may be updated by state departments. Please check numbers on your state food department&apos;s website before relying on them.
+          This directory could not be fully verified. Helplines and URLs change; check numbers on your state food department&apos;s website before relying on them.
         </p>
       </main>
 

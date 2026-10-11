@@ -1,12 +1,8 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import {
-  Household,
-  Check,
-  DistributionRecord,
-  Report,
-  Filing,
-  SyncOperation,
-} from '@repo/shared';
+import type { Report, Filing, SyncOperation } from '@repo/shared';
+import type { LocalCheck, LocalHousehold, LocalRecord } from './localTypes';
+
+export type { LocalCheck, LocalHousehold, LocalRecord };
 
 interface RationSaathiDB extends DBSchema {
   devices: {
@@ -15,16 +11,16 @@ interface RationSaathiDB extends DBSchema {
   };
   households: {
     key: string;
-    value: Household;
+    value: LocalHousehold;
   };
   checks: {
     key: string;
-    value: Check;
+    value: LocalCheck;
     indexes: { 'by-household': string };
   };
   records: {
     key: string;
-    value: DistributionRecord;
+    value: LocalRecord;
     indexes: { 'by-check': string };
   };
   reports: {
@@ -45,10 +41,24 @@ interface RationSaathiDB extends DBSchema {
     key: string;
     value: any;
   };
+  /** Photos taken offline, waiting to be uploaded and read. Deleted as soon as the upload succeeds. */
+  pendingPhotos: {
+    key: string;
+    value: PendingPhoto;
+    indexes: { 'by-check': string };
+  };
+}
+
+export interface PendingPhoto {
+  id: string;
+  checkId: string;
+  blob: Blob;
+  fileName: string;
+  createdAt: string;
 }
 
 const DB_NAME = 'rationsaathi_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<RationSaathiDB>> | null = null;
 
@@ -58,7 +68,11 @@ export function getDb(): Promise<IDBPDatabase<RationSaathiDB>> {
   }
   if (!dbPromise) {
     dbPromise = openDB<RationSaathiDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion) {
+        if (oldVersion < 2) {
+          db.createObjectStore('pendingPhotos', { keyPath: 'id' }).createIndex('by-check', 'checkId');
+        }
+        if (oldVersion >= 1) return;
         db.createObjectStore('devices', { keyPath: 'deviceId' });
         db.createObjectStore('households', { keyPath: 'id' });
         
@@ -89,28 +103,34 @@ export async function getDeviceCredentials(): Promise<{ deviceId: string; token:
   return all.length > 0 ? { deviceId: all[0].deviceId, token: all[0].token } : null;
 }
 
+export async function clearDeviceCredentials(): Promise<void> {
+  const db = await getDb();
+  await db.clear('devices');
+}
+
 export async function saveDeviceCredentials(deviceId: string, token: string): Promise<void> {
   const db = await getDb();
   await db.put('devices', { deviceId, token, registeredAt: new Date().toISOString() });
 }
 
 // Households
-export async function getLocalHouseholds(): Promise<Household[]> {
+export async function getLocalHouseholds(): Promise<LocalHousehold[]> {
   const db = await getDb();
   return db.getAll('households');
 }
 
-export async function getLocalHousehold(id: string): Promise<Household | undefined> {
+export async function getLocalHousehold(id: string): Promise<LocalHousehold | undefined> {
   const db = await getDb();
   return db.get('households', id);
 }
 
-export async function saveLocalHousehold(household: Household, queueSync = true): Promise<void> {
+export async function saveLocalHousehold(household: LocalHousehold, queueSync = true): Promise<void> {
   const db = await getDb();
   await db.put('households', household);
   if (queueSync) {
     // Strip local-only rationCardNo before queuing
-    const { rationCardNo, ...serverSafe } = household;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { rationCardNo, createdAt, updatedAt, ruleConfirmedAt, ...serverSafe } = household;
     const op: SyncOperation = {
       opId: crypto.randomUUID(),
       entity: 'household',
@@ -137,7 +157,7 @@ export async function deleteLocalHousehold(id: string): Promise<void> {
 }
 
 // Checks
-export async function getLocalChecks(householdId?: string): Promise<Check[]> {
+export async function getLocalChecks(householdId?: string): Promise<LocalCheck[]> {
   const db = await getDb();
   if (householdId) {
     return db.getAllFromIndex('checks', 'by-household', householdId);
@@ -145,12 +165,12 @@ export async function getLocalChecks(householdId?: string): Promise<Check[]> {
   return db.getAll('checks');
 }
 
-export async function getLocalCheck(id: string): Promise<Check | undefined> {
+export async function getLocalCheck(id: string): Promise<LocalCheck | undefined> {
   const db = await getDb();
   return db.get('checks', id);
 }
 
-export async function saveLocalCheck(check: Check, queueSync = true): Promise<void> {
+export async function saveLocalCheck(check: LocalCheck, queueSync = true): Promise<void> {
   const db = await getDb();
   await db.put('checks', check);
   if (queueSync) {
@@ -159,7 +179,7 @@ export async function saveLocalCheck(check: Check, queueSync = true): Promise<vo
       entity: 'check',
       action: 'put',
       id: check.id,
-      body: check,
+      body: { householdId: check.householdId, period: check.period },
       clientUpdatedAt: new Date().toISOString(),
     };
     await db.put('outbox', op);
@@ -167,17 +187,17 @@ export async function saveLocalCheck(check: Check, queueSync = true): Promise<vo
 }
 
 // Records
-export async function getLocalRecords(checkId: string): Promise<DistributionRecord[]> {
+export async function getLocalRecords(checkId: string): Promise<LocalRecord[]> {
   const db = await getDb();
   return db.getAllFromIndex('records', 'by-check', checkId);
 }
 
-export async function getLocalRecord(id: string): Promise<DistributionRecord | undefined> {
+export async function getLocalRecord(id: string): Promise<LocalRecord | undefined> {
   const db = await getDb();
   return db.get('records', id);
 }
 
-export async function saveLocalRecord(record: DistributionRecord, queueSync = true): Promise<void> {
+export async function saveLocalRecord(record: LocalRecord, queueSync = true): Promise<void> {
   const db = await getDb();
   await db.put('records', record);
   if (queueSync) {
@@ -186,7 +206,8 @@ export async function saveLocalRecord(record: DistributionRecord, queueSync = tr
       entity: 'record',
       action: 'put',
       id: record.id,
-      body: record,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      body: (({ id, labels, createdAt, updatedAt, ...input }) => input)(record),
       clientUpdatedAt: new Date().toISOString(),
     };
     await db.put('outbox', op);
@@ -229,34 +250,16 @@ export async function getLocalFiling(checkId: string): Promise<Filing | undefine
   return all[0];
 }
 
+/** Filings are not part of /sync/batch; the caller sends them with api.filing.put (online). */
 export async function saveLocalFiling(filing: Filing): Promise<void> {
   const db = await getDb();
   await db.put('filings', filing);
-  const op: SyncOperation = {
-    opId: crypto.randomUUID(),
-    entity: 'filing',
-    action: 'put',
-    id: filing.id,
-    body: filing,
-    clientUpdatedAt: new Date().toISOString(),
-  };
-  await db.put('outbox', op);
 }
 
 export async function deleteLocalFiling(checkId: string): Promise<void> {
   const db = await getDb();
   const filing = await getLocalFiling(checkId);
-  if (filing) {
-    await db.delete('filings', filing.id);
-    const op: SyncOperation = {
-      opId: crypto.randomUUID(),
-      entity: 'filing',
-      action: 'delete',
-      id: filing.id,
-      clientUpdatedAt: new Date().toISOString(),
-    };
-    await db.put('outbox', op);
-  }
+  if (filing) await db.delete('filings', filing.id);
 }
 
 // Outbox
@@ -297,6 +300,25 @@ export async function clearAllLocalData(): Promise<void> {
   await db.clear('filings');
   await db.clear('outbox');
   await db.clear('settings');
+  await db.clear('pendingPhotos');
+}
+
+// Offline photo queue
+export async function savePendingPhoto(checkId: string, blob: Blob, fileName: string): Promise<PendingPhoto> {
+  const db = await getDb();
+  const p: PendingPhoto = { id: crypto.randomUUID(), checkId, blob, fileName, createdAt: new Date().toISOString() };
+  await db.put('pendingPhotos', p);
+  return p;
+}
+
+export async function getPendingPhotos(checkId: string): Promise<PendingPhoto[]> {
+  const db = await getDb();
+  return db.getAllFromIndex('pendingPhotos', 'by-check', checkId);
+}
+
+export async function deletePendingPhoto(id: string): Promise<void> {
+  const db = await getDb();
+  await db.delete('pendingPhotos', id);
 }
 
 // Example Data seeder
@@ -304,7 +326,7 @@ export async function seedExampleData(): Promise<{ householdId: string; checkId:
   const householdId = 'example-household-1';
   const checkId = 'example-check-1';
 
-  const household: Household = {
+  const household: LocalHousehold = {
     id: householdId,
     label: 'Sharma Household (Example)',
     cardType: 'PHH',
@@ -315,7 +337,7 @@ export async function seedExampleData(): Promise<{ householdId: string; checkId:
       sourceTitle: 'National Food Security Act, 2013 — Priority Households',
       sourceUrl: 'https://nfsa.gov.in/',
       sourceNote: 'Statutory scale: 5 kg per member per month.',
-      lastVerified: '2026-10-01',
+      lastVerified: null,
     },
     ruleConfirmed: true,
     ruleConfirmedAt: '2026-10-01T10:00:00.000Z',
@@ -326,44 +348,47 @@ export async function seedExampleData(): Promise<{ householdId: string; checkId:
     rationCardNo: 'MH2704179920', // Local only
   };
 
-  const check: Check = {
+  const check: LocalCheck = {
     id: checkId,
     householdId,
     period: '2026-10',
     status: 'open',
   };
 
-  const records: DistributionRecord[] = [
+  const records: LocalRecord[] = [
     {
-      id: 'rec-1',
+      id: 'example-rec-1',
       checkId,
       date: '2026-10-04',
       quantityKg: 12,
       commodity: 'mixed',
       evidenceType: 'sms',
       evidenceContent: 'TXN: 984102. 12.000 Kg ration delivered on 04/10/2026 at FPS 0417.',
+      unclear: false,
       confirmed: true,
-      createdVia: 'paste',
+      createdVia: 'ocr',
     },
     {
-      id: 'rec-2',
+      id: 'example-rec-2',
       checkId,
       date: '2026-10-12',
       quantityKg: 4,
       commodity: 'wheat',
       evidenceType: 'note',
       evidenceContent: 'Received 4 kg wheat from FPS on second trip. Dealer mentioned balance quota.',
+      unclear: false,
       confirmed: true,
       createdVia: 'manual',
     },
     {
-      id: 'rec-3',
+      id: 'example-rec-3',
       checkId,
       date: '2026-10-15',
       quantityKg: 3,
       commodity: 'rice',
       evidenceType: 'none',
-      evidenceContent: '',
+      evidenceContent: null,
+      unclear: false,
       confirmed: true,
       createdVia: 'manual',
     },
@@ -383,7 +408,7 @@ export async function clearExampleData(): Promise<void> {
   const db = await getDb();
   await db.delete('households', 'example-household-1');
   await db.delete('checks', 'example-check-1');
-  await db.delete('records', 'rec-1');
-  await db.delete('records', 'rec-2');
-  await db.delete('records', 'rec-3');
+  await db.delete('records', 'example-rec-1');
+  await db.delete('records', 'example-rec-2');
+  await db.delete('records', 'example-rec-3');
 }

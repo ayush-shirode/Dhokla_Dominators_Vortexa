@@ -25,6 +25,11 @@ export function SummaryPanel({ summary, checkId, lang = 'en' }: SummaryPanelProp
   const isShortfall = summary.status === 'shortfall';
   const isMatches = summary.status === 'matches';
   const isAbove = summary.status === 'above_entitlement';
+  const entitledKg = summary.entitlement.kg;
+  const countedKg = summary.totals.countedKg;
+  const diffKg = Math.abs(summary.differenceKg);
+  const unrecordedCount = summary.records.filter((r) => r.exclusionReason === 'unrecorded').length;
+  const unclearCount = summary.records.filter((r) => r.exclusionReason === 'unclear').length;
 
   return (
     <div className="bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg p-5 shadow-xs space-y-5">
@@ -33,7 +38,7 @@ export function SummaryPanel({ summary, checkId, lang = 'en' }: SummaryPanelProp
           Discrepancy Summary
         </h3>
         <ListenButton
-          text={`Summary: Entitled ${summary.entitledKg} kg. Received counted ${summary.receivedCountedKg} kg. Difference ${summary.differenceKg} kg. Status: ${summary.status}.`}
+          text={`Summary: Entitled ${formatKg(entitledKg)}. Received and counted ${formatKg(countedKg)}. Difference ${formatKg(diffKg)}.`}
           label="Listen"
         />
       </div>
@@ -45,7 +50,7 @@ export function SummaryPanel({ summary, checkId, lang = 'en' }: SummaryPanelProp
             Entitled
           </span>
           <span className="text-xl sm:text-2xl font-mono font-bold text-stone-900 dark:text-stone-100">
-            {formatKg(summary.entitledKg)}
+            {formatKg(entitledKg)}
           </span>
         </div>
 
@@ -54,7 +59,7 @@ export function SummaryPanel({ summary, checkId, lang = 'en' }: SummaryPanelProp
             Counted
           </span>
           <span className="text-xl sm:text-2xl font-mono font-bold text-teal-700 dark:text-teal-400">
-            {formatKg(summary.receivedCountedKg)}
+            {formatKg(countedKg)}
           </span>
         </div>
 
@@ -69,7 +74,7 @@ export function SummaryPanel({ summary, checkId, lang = 'en' }: SummaryPanelProp
                 : 'text-stone-800 dark:text-stone-200'
             }`}
           >
-            {formatKg(summary.differenceKg)}
+            {formatKg(diffKg)}
           </span>
         </div>
       </div>
@@ -101,27 +106,23 @@ export function SummaryPanel({ summary, checkId, lang = 'en' }: SummaryPanelProp
           {isMatches && <CheckCircle2 className="w-4 h-4 text-teal-700" />}
           <span>
             {isShortfall
-              ? `Difference of ${summary.differenceKg} kg below the entitlement`
+              ? `Difference of ${formatKg(diffKg)} below the entitlement`
               : isAbove
-              ? `Received ${summary.differenceKg} kg more than the entitlement (this can happen with advance or make-up deliveries)`
+              ? `Received ${formatKg(diffKg)} more than the entitlement (this can happen with advance or make-up deliveries)`
               : 'Received quantity matches the entitlement'}
           </span>
         </div>
       </div>
 
       {/* Excluded Records Note */}
-      {summary.recordsExcluded > 0 && (
+      {summary.totals.excludedCount > 0 && (
         <div className="text-xs text-stone-600 dark:text-stone-400 bg-stone-100 dark:bg-stone-950 p-3 rounded border border-stone-200 dark:border-stone-800">
           <p className="font-semibold text-stone-700 dark:text-stone-300">
-            {summary.recordsExcluded} records ({summary.excludedKg} kg) were not counted:
+            {summary.totals.excludedCount} {summary.totals.excludedCount === 1 ? 'record' : 'records'} ({formatKg(summary.totals.excludedKg)}) were not counted:
           </p>
           <ul className="list-disc list-inside mt-1 space-y-0.5 text-[11px]">
-            {summary.exclusionBreakdown.unrecordedCount > 0 && (
-              <li>{summary.exclusionBreakdown.unrecordedCount} has no evidence (Unrecorded)</li>
-            )}
-            {summary.exclusionBreakdown.unclearCount > 0 && (
-              <li>{summary.exclusionBreakdown.unclearCount} marked unclear or unverified</li>
-            )}
+            {unrecordedCount > 0 && <li>{unrecordedCount} with no evidence (Unrecorded)</li>}
+            {unclearCount > 0 && <li>{unclearCount} marked unclear or not yet checked (Unclear)</li>}
           </ul>
         </div>
       )}

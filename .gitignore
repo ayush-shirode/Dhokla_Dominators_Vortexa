@@ -44,3 +44,8 @@ coverage/
 *.sw?
 .DS_Store
 Thumbs.db
+
+# RationSaathi API local data & downloaded assets
+apps/api/data/
+apps/api/tessdata/
+apps/api/assets/fonts/
