@@ -1,0 +1,83 @@
+issue_type,state_name,card_category,detail,link_to_chase
+CONFLICT,West Bengal,Priority Household (NFSA) [PHH],"National NFSA entitlement; state-specific order not yet opened. Card category and count taken from https://www.nfsa.gov.in/State/WB (page 'Last reviewed and updated' 2026-10-10); that page states no kg figure. Whether grain is currently free, and until when, not verified. CONFLICT: West Bengal's own",https://www.nfsa.gov.in/portal/Coverage_Entitlements_NFSA_AA
+CONFLICT,West Bengal,PHH/SPHH (Priority Household / Special Priority Household),"Page appears dated: it refers to PMGKAY 'upto December, 2020' and Bengal Gram 'upto January, 2021'. Quote taken from a page summary, not a verbatim copy; re-open page to confirm. Disagrees with the national NFSA figure of 5 kg per person (separate WB row). The page may mean per head; basis recorded ",https://food.wb.gov.in/food/HomePage/entitlement.aspx
+UNSOURCED_FIGURE,Maharashtra,Non Priority Households (NPH) Card,No kg entitlement found in an official source,https://controllerofrationing-mumbai.gov.in/en/ration-card/
+UNSOURCED_FIGURE,Maharashtra,White Ration Card,No kg entitlement found in an official source,https://controllerofrationing-mumbai.gov.in/en/ration-card/
+UNSOURCED_FIGURE,Maharashtra,APL (Farmer),No kg entitlement found in an official source,
+UNSOURCED_FIGURE,Maharashtra,BPL Yellow,No kg entitlement found in an official source,
+UNSOURCED_FIGURE,Maharashtra,NER,No kg entitlement found in an official source,
+UNSOURCED_FIGURE,Andhra Pradesh,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/AP
+UNSOURCED_FIGURE,Arunachal Pradesh,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/AR
+UNSOURCED_FIGURE,Assam,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/AS
+UNSOURCED_FIGURE,Bihar,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/BR
+UNSOURCED_FIGURE,Chhattisgarh,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/CG
+UNSOURCED_FIGURE,Delhi,Annapurna,No kg entitlement found in an official source,https://www.nfsa.gov.in/State/DL
+UNSOURCED_FIGURE,Gujarat,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/GJ
+UNSOURCED_FIGURE,Haryana,Other Priority Household [OPH],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/HR
+UNSOURCED_FIGURE,Himachal Pradesh,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/HP
+UNSOURCED_FIGURE,Jharkhand,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/JH
+UNSOURCED_FIGURE,Karnataka,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/KA
+UNSOURCED_FIGURE,Kerala,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/KL
+UNSOURCED_FIGURE,Madhya Pradesh,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/MP
+UNSOURCED_FIGURE,Lakshadweep,ABOVE POVERTY LINE [APL],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/LD
+UNSOURCED_FIGURE,Lakshadweep,Tide-over [Tide-over],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/LD
+UNSOURCED_FIGURE,Meghalaya,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/ML
+UNSOURCED_FIGURE,Nagaland,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/NL
+UNSOURCED_FIGURE,Odisha,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/OR
+UNSOURCED_FIGURE,Puducherry,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/PY
+UNSOURCED_FIGURE,Rajasthan,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/RJ
+UNSOURCED_FIGURE,Sikkim,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/SK
+UNSOURCED_FIGURE,Tamil Nadu,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/TN
+UNSOURCED_FIGURE,Telangana,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/TS
+UNSOURCED_FIGURE,Uttar Pradesh,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/UP
+UNSOURCED_FIGURE,West Bengal,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/WB
+UNSOURCED_FIGURE,Uttarakhand,ANNAPURNA [Annapurna],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/UK
+UNSOURCED_FIGURE,Tripura,Priority Group [PG],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/TR
+UNSOURCED_FIGURE,Tripura,Addition Allocation (Tripura Festival) [DALLOC-Fst],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/TR
+UNSOURCED_FIGURE,Tripura,Addition Allocation (Tripura Flood) [DALLOC-Fld],No kg entitlement found in an official source,https://www.nfsa.gov.in/State/TR
+UNSOURCED_FIGURE,Kerala,Non Priority State Subsidy,No kg entitlement found in an official source,https://civilsupplieskerala.gov.in/index.php/cards
+UNSOURCED_FIGURE,Kerala,Non Priority Non Subsidy,No kg entitlement found in an official source,https://civilsupplieskerala.gov.in/index.php/cards
+UNSOURCED_FIGURE,Kerala,NPI Cards,No kg entitlement found in an official source,https://civilsupplieskerala.gov.in/index.php/cards
+UNSOURCED_FIGURE,Kerala,APNA,No kg entitlement found in an official source,https://civilsupplieskerala.gov.in/index.php/cards
+UNSOURCED_FIGURE,Karnataka,APL,No kg entitlement found in an official source,https://kfcsc.karnataka.gov.in/info-2/Public+Distribution+system/en
+UNSOURCED_FIGURE,Karnataka,EBPL,No kg entitlement found in an official source,https://kfcsc.karnataka.gov.in/info-2/Public+Distribution+system/en
+ACCESS_ISSUE,Maharashtra,(state-wide),No official page found in this pass,
+ACCESS_ISSUE,Dadra and Nagar Haveli and Daman and Diu,(state-wide),"Legacy DD page (Daman and Diu) shows 0 cards and 'Loading, please wait'; merged UT data taken from DN page",
+ACCESS_ISSUE,Delhi,(state-wide),State pages https://fsd.delhi.gov.in/des/ration-card blocked (robots disallowed); https://fsd.delhi.gov.in/fs/public-distribution-system opened but gives no kg entitlements or card categories,
+ACCESS_ISSUE,Nagaland,(state-wide),NFSA state page shows 0 for Total/AAY/PHH cards (data may not have loaded); card counts unverified,
+ACCESS_ISSUE,Tamil Nadu,(state-wide),State page https://consumer.tn.gov.in/ration_card_types.htm could not be fetched (robots disallowed); TN-specific card types and entitlements not confirmed,
+ACCESS_ISSUE,Telangana,(state-wide),State page https://www.civilsupplies.telangana.gov.in/foodsecurity.aspx could not be fetched (robots disallowed); Telangana-specific entitlement not confirmed,
+ACCESS_ISSUE,Uttar Pradesh,(state-wide),State page https://fcs.up.gov.in/Important/help-en.aspx could not be fetched (robots disallowed); UP-specific entitlement not confirmed,
+VERIFY_STATE_ORDER,Andaman and Nicobar Islands,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/AN
+VERIFY_STATE_ORDER,Andhra Pradesh,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/AP
+VERIFY_STATE_ORDER,Arunachal Pradesh,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/AR
+VERIFY_STATE_ORDER,Assam,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/AS
+VERIFY_STATE_ORDER,Bihar,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/BR
+VERIFY_STATE_ORDER,Chandigarh,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/CH
+VERIFY_STATE_ORDER,Chhattisgarh,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/CG
+VERIFY_STATE_ORDER,Dadra and Nagar Haveli and Daman and Diu,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/DN
+VERIFY_STATE_ORDER,Delhi,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/DL
+VERIFY_STATE_ORDER,Gujarat,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/GJ
+VERIFY_STATE_ORDER,Haryana,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/HR
+VERIFY_STATE_ORDER,Himachal Pradesh,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/HP
+VERIFY_STATE_ORDER,Jharkhand,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/JH
+VERIFY_STATE_ORDER,Karnataka,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/KA
+VERIFY_STATE_ORDER,Kerala,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/KL
+VERIFY_STATE_ORDER,Ladakh,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/LA
+VERIFY_STATE_ORDER,Lakshadweep,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/LD
+VERIFY_STATE_ORDER,Madhya Pradesh,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/MP
+VERIFY_STATE_ORDER,Manipur,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/MN
+VERIFY_STATE_ORDER,Meghalaya,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/ML
+VERIFY_STATE_ORDER,Mizoram,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/MZ
+VERIFY_STATE_ORDER,Nagaland,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/NL
+VERIFY_STATE_ORDER,Odisha,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/OR
+VERIFY_STATE_ORDER,Puducherry,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/PY
+VERIFY_STATE_ORDER,Punjab,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/PB
+VERIFY_STATE_ORDER,Rajasthan,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/RJ
+VERIFY_STATE_ORDER,Sikkim,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/SK
+VERIFY_STATE_ORDER,Tamil Nadu,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/TN
+VERIFY_STATE_ORDER,Telangana,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/TS
+VERIFY_STATE_ORDER,Tripura,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/TR
+VERIFY_STATE_ORDER,Uttar Pradesh,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/UP
+VERIFY_STATE_ORDER,Uttarakhand,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/UK
+VERIFY_STATE_ORDER,West Bengal,AAY/PHH,Entitlement uses the national NFSA scale; state-specific order and current free-grain scheme/end date not confirmed,https://www.nfsa.gov.in/State/WB

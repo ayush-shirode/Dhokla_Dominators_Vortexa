@@ -97,6 +97,17 @@ pnpm test        # 37 backend + engine tests, plus the UI catalog check (all 13 
 pnpm typecheck   # shared + API + web
 ```
 
+### Ration card types by state
+
+The household form asks for the state first and then offers that state's own card names. AAY and PHH pre-fill the sourced national figure, and every other card starts with no figure: the household types the quantity and says where it comes from.
+
+The data lives in `ration_data/india_ration_entitlements.csv` (from the research prompt in [docs/RESEARCH_PROMPT.md](docs/RESEARCH_PROMPT.md)). After editing it, rebuild the catalog the apps read:
+
+```bash
+pnpm build:card-catalog     # ration_data/*.csv → packages/shared/src/cardCatalog.generated.ts
+pnpm build:shared
+```
+
 ### Offline use and installing on a phone
 
 The service worker only runs in a **production build**, so test offline behaviour with `pnpm build && pnpm start`, not `pnpm dev`.

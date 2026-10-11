@@ -10,6 +10,9 @@ import {
   CardType,
   RuleBasis,
   getRuleDefault,
+  getNfsaEntry,
+  getOtherCardTypes,
+  ruleFromEntry,
   INDIAN_STATES,
   checkNeutrality,
   redactSensitiveIds,
@@ -25,6 +28,8 @@ export default function HouseholdSetupPage() {
 
   const [label, setLabel] = useState('My household');
   const [cardType, setCardType] = useState<CardType>('PHH');
+  /** The state's own name for the card (only for categories other than AAY/PHH). */
+  const [cardName, setCardName] = useState<string | null>(null);
   const [members, setMembers] = useState<number>(4);
   const [perUnitKg, setPerUnitKg] = useState<number>(5);
   const [basis, setBasis] = useState<RuleBasis>('perMember');
@@ -32,18 +37,24 @@ export default function HouseholdSetupPage() {
   const [sourceUrl, setSourceUrl] = useState<string | null>('https://nfsa.gov.in/');
   const [sourceNote, setSourceNote] = useState('National scale; state schemes may differ.');
   const [lastVerified, setLastVerified] = useState<string | null>(null);
+  /** Shown when sources disagree about this state's figure. */
+  const [caution, setCaution] = useState<string | null>(null);
 
   const [ruleConfirmed, setRuleConfirmed] = useState(false);
   const [ruleConfirmedAt, setRuleConfirmedAt] = useState<string | null>(null);
 
-  const [stateCode, setStateCode] = useState<string | null>('MH');
-  const [district, setDistrict] = useState('Pune');
+  const [stateCode, setStateCode] = useState<string | null>(null);
+  const [district, setDistrict] = useState('');
   const [fpsNo, setFpsNo] = useState('');
   const [fpsName, setFpsName] = useState('');
   const [rationCardNo, setRationCardNo] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const stateName = INDIAN_STATES.find((s) => s.code === stateCode)?.name ?? null;
+  const otherCards = getOtherCardTypes(stateCode);
+  const chosenOther = cardType === 'CUSTOM' ? otherCards.find((e) => e.name === cardName) ?? null : null;
 
   useEffect(() => {
     if (editId) {
@@ -52,6 +63,7 @@ export default function HouseholdSetupPage() {
         if (h) {
           setLabel(h.label);
           setCardType(h.cardType);
+          setCardName(h.cardName ?? null);
           setMembers(h.members);
           setPerUnitKg(h.rule.perUnitKg);
           setBasis(h.rule.basis);
@@ -62,6 +74,7 @@ export default function HouseholdSetupPage() {
           setRuleConfirmed(h.ruleConfirmed);
           setRuleConfirmedAt(h.ruleConfirmedAt);
           setStateCode(h.stateCode);
+          if (h.cardType !== 'CUSTOM') setCaution(getNfsaEntry(h.stateCode, h.cardType)?.caution ?? null);
           setDistrict(h.district || '');
           setFpsNo(h.fpsNo || '');
           setFpsName(h.fpsName || '');
@@ -72,25 +85,52 @@ export default function HouseholdSetupPage() {
     }
   }, [editId]);
 
-  const handleSelectCardType = (type: CardType) => {
+  /**
+   * Applies a card type. AAY/PHH pre-fill that state's sourced figure (or the national scale);
+   * any other card starts with NO figure: the household types it and says where it comes from.
+   * Either way the rule is un-confirmed (Principle 1).
+   */
+  const applyCardType = (type: CardType, state: string | null) => {
     setCardType(type);
-    // AAY/PHH pre-fill the national NFSA scale; CUSTOM keeps the current figures and asks for a source.
-    const defaults = getRuleDefault(type);
-    if (defaults) {
-      setPerUnitKg(defaults.perUnitKg);
-      setBasis(defaults.basis);
-      setSourceTitle(defaults.sourceTitle);
-      setSourceUrl(defaults.sourceUrl);
-      setSourceNote(defaults.sourceNote);
-      setLastVerified(defaults.lastVerified);
+    setCardName(null);
+    if (type === 'AAY' || type === 'PHH') {
+      const entry = getNfsaEntry(state, type);
+      const rule = (entry && ruleFromEntry(entry)) ?? getRuleDefault(type);
+      if (rule) {
+        setPerUnitKg(rule.perUnitKg);
+        setBasis(rule.basis);
+        setSourceTitle(rule.sourceTitle);
+        setSourceUrl(rule.sourceUrl);
+        setSourceNote(rule.sourceNote);
+        setLastVerified(rule.lastVerified);
+      }
+      setCaution(entry?.caution ?? null);
     } else {
-      setSourceTitle('State / custom scheme');
+      setPerUnitKg(0);
+      setSourceTitle(`${INDIAN_STATES.find((s) => s.code === state)?.name ?? 'State'} scheme (figure entered by the household)`);
       setSourceUrl(null);
       setSourceNote('');
       setLastVerified(null);
+      setCaution(null);
     }
-    // Any change to cardType un-confirms the rule
     setRuleConfirmed(false);
+    setRuleConfirmedAt(null);
+  };
+
+  const handleSelectCardType = (type: CardType) => applyCardType(type, stateCode);
+
+  const handleSelectState = (code: string | null) => {
+    setStateCode(code);
+    // A different state has different card names and sources: start that card choice again.
+    applyCardType(cardType, code);
+  };
+
+  const handleSelectOther = (name: string) => {
+    setCardName(name || null);
+    const entry = otherCards.find((e) => e.name === name);
+    setCaution(entry?.caution ?? null);
+    setRuleConfirmed(false);
+    setRuleConfirmedAt(null);
   };
 
   const handleMembersChange = (newVal: number) => {
@@ -110,7 +150,21 @@ export default function HouseholdSetupPage() {
     setRuleConfirmed(false);
   };
 
+  const handleSourceNoteChange = (v: string) => {
+    setSourceNote(v);
+    setRuleConfirmed(false);
+  };
+
+  /** Why the rule cannot be confirmed yet, or null when it can. */
+  const confirmBlockedReason: string | null =
+    perUnitKg <= 0
+      ? 'Enter the monthly quantity for your card.'
+      : cardType === 'CUSTOM' && !sourceNote.trim()
+        ? 'Say where this figure comes from (for example, your state food department order or the shop notice).'
+        : null;
+
   const handleConfirmRule = () => {
+    if (confirmBlockedReason) return;
     setRuleConfirmed(true);
     setRuleConfirmedAt(new Date().toISOString());
   };
@@ -124,6 +178,7 @@ export default function HouseholdSetupPage() {
         id,
         label,
         cardType,
+        cardName: cardType === 'CUSTOM' ? cardName : null,
         members,
         rule: {
           perUnitKg,
@@ -167,7 +222,7 @@ export default function HouseholdSetupPage() {
             </h2>
           </div>
           <ListenButton
-            text="Household setup. Select your card type: Antyodaya or Priority LocalHousehold, enter member count, and explicitly confirm your monthly entitlement rule."
+            text="Household setup. Select your state, then your card type: Antyodaya, Priority Household, or another card your state issues, enter member count, and explicitly confirm your monthly entitlement rule."
             label="Listen"
           />
         </div>
@@ -187,6 +242,30 @@ export default function HouseholdSetupPage() {
             />
           </div>
 
+          {/* State first: it decides the card names and sources shown below */}
+          <div>
+            <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
+              Your State / UT
+            </label>
+            <select
+              value={stateCode ?? ''}
+              onChange={(e) => handleSelectState(e.target.value || null)}
+              className="w-full px-3 py-2 text-sm bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded text-stone-900 dark:text-stone-100"
+            >
+              <option value="">Select your state…</option>
+              {INDIAN_STATES.map((st) => (
+                <option key={st.code} value={st.code}>
+                  {st.name}
+                </option>
+              ))}
+            </select>
+            {!stateCode && (
+              <p className="text-[11px] text-stone-500 mt-1">
+                Choose your state to see the card names it uses. You can still continue without it.
+              </p>
+            )}
+          </div>
+
           {/* Card Type Radio Tiles */}
           <div>
             <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-2">
@@ -197,17 +276,20 @@ export default function HouseholdSetupPage() {
                 {
                   type: 'PHH' as CardType,
                   title: 'Priority (PHH)',
-                  desc: '5 kg per member per month',
+                  desc: '5 kg per member per month (national scale)',
+                  stateName: getNfsaEntry(stateCode, 'PHH')?.name,
                 },
                 {
                   type: 'AAY' as CardType,
                   title: 'Antyodaya (AAY)',
-                  desc: '35 kg per family per month',
+                  desc: '35 kg per family per month (national scale)',
+                  stateName: getNfsaEntry(stateCode, 'AAY')?.name,
                 },
                 {
                   type: 'CUSTOM' as CardType,
-                  title: 'Other / State',
-                  desc: 'Custom entitlement scale',
+                  title: 'Other card',
+                  desc: stateName ? `Another card issued in ${stateName}` : 'Any other card or state scheme',
+                  stateName: undefined as string | undefined,
                 },
               ].map((item) => (
                 <button
@@ -237,9 +319,90 @@ export default function HouseholdSetupPage() {
                     </span>
                   </div>
                   <p className="text-[11px] text-stone-500 leading-tight">{item.desc}</p>
+                  {item.stateName && (
+                    <p className="text-[10px] text-stone-400 leading-tight mt-1">Printed as: {item.stateName}</p>
+                  )}
                 </button>
               ))}
             </div>
+
+            {/* Other cards: the state's own list. No figure is assumed for any of them. */}
+            {cardType === 'CUSTOM' && (
+              <div className="mt-3 p-3 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 space-y-3">
+                {otherCards.length > 0 ? (
+                  <div>
+                    <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
+                      Which card do you have?
+                    </label>
+                    <select
+                      value={otherCards.some((e) => e.name === cardName) ? cardName ?? '' : cardName ? '__other__' : ''}
+                      onChange={(e) => handleSelectOther(e.target.value === '__other__' ? '' : e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded"
+                    >
+                      <option value="">Select your card…</option>
+                      {otherCards.map((e) => (
+                        <option key={e.id} value={e.name}>
+                          {e.name}
+                          {e.code ? ` (${e.code})` : ''}
+                        </option>
+                      ))}
+                      <option value="__other__">My card is not listed</option>
+                    </select>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-stone-500">
+                    {stateName ? `We have no other card names listed for ${stateName}.` : 'Choose your state to see its card names.'}
+                  </p>
+                )}
+                {(!chosenOther || cardName === null) && (
+                  <div>
+                    <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
+                      Card name (as printed on your card)
+                    </label>
+                    <input
+                      type="text"
+                      value={cardName ?? ''}
+                      maxLength={120}
+                      onChange={(e) => setCardName(e.target.value || null)}
+                      placeholder="e.g. APL (Farmer)"
+                      className="w-full px-3 py-2 text-xs bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded"
+                    />
+                  </div>
+                )}
+                {chosenOther && (
+                  <div className="text-[11px] text-stone-600 dark:text-stone-400 space-y-1">
+                    <p>{chosenOther.note}</p>
+                    {chosenOther.reference && (
+                      <p className="p-2 rounded bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-950 dark:text-amber-200">
+                        {chosenOther.reference.text}{' '}
+                        <a href={chosenOther.reference.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                          Source ↗
+                        </a>
+                      </p>
+                    )}
+                    <a href={chosenOther.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline text-teal-700 dark:text-teal-400">
+                      Where this card is listed ↗
+                    </a>
+                  </div>
+                )}
+                <div>
+                  <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
+                    Where does your monthly quantity come from?
+                  </label>
+                  <input
+                    type="text"
+                    value={sourceNote}
+                    maxLength={500}
+                    onChange={(e) => handleSourceNoteChange(e.target.value)}
+                    placeholder="e.g. state food department order, notice at the shop, SMS"
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded"
+                  />
+                  <p className="text-[11px] text-stone-500 mt-1">
+                    No official figure is filled in for this card. Type the quantity below and say where it comes from.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Members on card stepper */}
@@ -279,7 +442,8 @@ export default function HouseholdSetupPage() {
                 step="0.5"
                 min="0"
                 max="100"
-                value={perUnitKg}
+                value={perUnitKg || ''}
+                placeholder={cardType === 'CUSTOM' ? 'Enter kg' : undefined}
                 onChange={(e) => handleKgChange(parseFloat(e.target.value) || 0)}
                 className="w-full px-3 py-2 text-sm bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded font-mono"
               />
@@ -331,6 +495,8 @@ export default function HouseholdSetupPage() {
             isConfirmed={ruleConfirmed}
             confirmedDate={ruleConfirmedAt}
             onConfirm={handleConfirmRule}
+            caution={caution}
+            blockedReason={confirmBlockedReason}
           />
 
           {/* State & Location details */}
@@ -342,31 +508,13 @@ export default function HouseholdSetupPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
-                  State
-                </label>
-                <select
-                  value={stateCode ?? ''}
-                  onChange={(e) => setStateCode(e.target.value || null)}
-                  className="w-full px-3 py-2 text-xs bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded"
-                >
-                  <option value="">Select state…</option>
-                  {INDIAN_STATES.map((s) => (
-                    <option key={s.code} value={s.code}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-stone-700 dark:text-stone-300 block mb-1">
                   District
                 </label>
                 <input
                   type="text"
                   value={district}
                   onChange={(e) => setDistrict(e.target.value)}
-                  placeholder="e.g. Pune"
+                  placeholder="District name"
                   className="w-full px-3 py-2 text-xs bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded"
                 />
               </div>

@@ -130,6 +130,8 @@ export interface Household {
   id: string;
   label: string;
   cardType: CardType;
+  /** The state's own name for the card category, e.g. "APL (Farmer)". Null for plain AAY/PHH. */
+  cardName: string | null;
   members: number;
   rule: EntitlementRule;
   /** True only after the user looked at the rule and accepted/edited it. */
@@ -147,6 +149,8 @@ export interface Household {
 export interface HouseholdInput {
   label?: string;
   cardType: CardType;
+  /** The state's name for the card category (shown in reports). Optional. */
+  cardName?: string | null;
   members: number;
   rule: EntitlementRule;
   /**
@@ -307,7 +311,7 @@ export interface ReportSnapshot {
   engineVersion: string;
   generatedAt: string;
   period: string;
-  household: { label: string; cardType: CardType; members: number };
+  household: { label: string; cardType: CardType; cardName: string | null; members: number };
   rule: EntitlementRule & { confirmedAt: string };
   summary: DiscrepancySummary;
   records: ReportRecordSnapshot[];

@@ -14,6 +14,7 @@ export function rowToHousehold(r: Row): Household {
     id: r.id as string,
     label: r.label as string,
     cardType: r.card_type as Household['cardType'],
+    cardName: (r.card_name as string) ?? null,
     members: r.members as number,
     rule: JSON.parse(r.rule_json as string) as EntitlementRule,
     ruleConfirmed: r.rule_confirmed_at !== null,
@@ -82,8 +83,8 @@ export function putHousehold(deviceId: string, id: string, input: HouseholdInput
     }
 
     const clean = redactFields(
-      { label: input.label ?? 'My household', district: input.district ?? null, fpsNo: input.fpsNo ?? null, fpsName: input.fpsName ?? null, sourceNote: input.rule.sourceNote ?? '' },
-      ['label', 'district', 'fpsNo', 'fpsName', 'sourceNote'],
+      { label: input.label ?? 'My household', cardName: input.cardName ?? null, district: input.district ?? null, fpsNo: input.fpsNo ?? null, fpsName: input.fpsName ?? null, sourceNote: input.rule.sourceNote ?? '' },
+      ['label', 'cardName', 'district', 'fpsNo', 'fpsName', 'sourceNote'],
       warnings,
     );
     const rule: EntitlementRule = { ...input.rule, sourceNote: clean.sourceNote };
@@ -99,15 +100,15 @@ export function putHousehold(deviceId: string, id: string, input: HouseholdInput
     }
 
     if (existing) {
-      db.prepare(`UPDATE households SET label=?, card_type=?, members=?, rule_json=?, rule_fingerprint=?, rule_confirmed_at=?,
+      db.prepare(`UPDATE households SET label=?, card_type=?, card_name=?, members=?, rule_json=?, rule_fingerprint=?, rule_confirmed_at=?,
         state_code=?, district=?, fps_no=?, fps_name=?, client_updated_at=?, updated_at=?, deleted_at=NULL WHERE id=?`).run(
-        clean.label, input.cardType, input.members, JSON.stringify(rule), fingerprint, confirmedAt,
+        clean.label, input.cardType, clean.cardName, input.members, JSON.stringify(rule), fingerprint, confirmedAt,
         input.stateCode ?? null, clean.district, clean.fpsNo, clean.fpsName, input.clientUpdatedAt ?? now, now, id,
       );
     } else {
-      db.prepare(`INSERT INTO households (id, device_id, label, card_type, members, rule_json, rule_fingerprint, rule_confirmed_at,
-        state_code, district, fps_no, fps_name, client_updated_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
-        id, deviceId, clean.label, input.cardType, input.members, JSON.stringify(rule), fingerprint, confirmedAt,
+      db.prepare(`INSERT INTO households (id, device_id, label, card_type, card_name, members, rule_json, rule_fingerprint, rule_confirmed_at,
+        state_code, district, fps_no, fps_name, client_updated_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+        id, deviceId, clean.label, input.cardType, clean.cardName, input.members, JSON.stringify(rule), fingerprint, confirmedAt,
         input.stateCode ?? null, clean.district, clean.fpsNo, clean.fpsName, input.clientUpdatedAt ?? now, now, now,
       );
     }

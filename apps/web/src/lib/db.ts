@@ -58,7 +58,7 @@ export interface PendingPhoto {
 }
 
 const DB_NAME = 'rationsaathi_db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let dbPromise: Promise<IDBPDatabase<RationSaathiDB>> | null = null;
 
@@ -68,9 +68,18 @@ export function getDb(): Promise<IDBPDatabase<RationSaathiDB>> {
   }
   if (!dbPromise) {
     dbPromise = openDB<RationSaathiDB>(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion) {
-        if (oldVersion < 2) {
+      async upgrade(db, oldVersion, _newVersion, tx) {
+        if (oldVersion >= 1 && oldVersion < 2) {
           db.createObjectStore('pendingPhotos', { keyPath: 'id' }).createIndex('by-check', 'checkId');
+        }
+        if (oldVersion >= 1 && oldVersion < 3) {
+          // State codes CT/OR/UT became CG/OD/UK.
+          const legacy: Record<string, string> = { CT: 'CG', OR: 'OD', UT: 'UK' };
+          const store = tx.objectStore('households');
+          for (let cur = await store.openCursor(); cur; cur = await cur.continue()) {
+            const code = cur.value.stateCode;
+            if (code && legacy[code]) await cur.update({ ...cur.value, stateCode: legacy[code] });
+          }
         }
         if (oldVersion >= 1) return;
         db.createObjectStore('devices', { keyPath: 'deviceId' });
@@ -90,6 +99,7 @@ export function getDb(): Promise<IDBPDatabase<RationSaathiDB>> {
 
         db.createObjectStore('outbox', { keyPath: 'opId' });
         db.createObjectStore('settings', { keyPath: 'key' });
+        db.createObjectStore('pendingPhotos', { keyPath: 'id' }).createIndex('by-check', 'checkId');
       },
     });
   }
@@ -330,6 +340,7 @@ export async function seedExampleData(): Promise<{ householdId: string; checkId:
     id: householdId,
     label: 'Sharma Household (Example)',
     cardType: 'PHH',
+    cardName: null,
     members: 4,
     rule: {
       perUnitKg: 5,

@@ -45,6 +45,7 @@ const stateCodeSchema = z
 export const householdInputSchema = z.object({
   label: shortText(80).optional(),
   cardType: cardTypeSchema,
+  cardName: shortText(120).nullable().optional(),
   members: z.number().int().min(1).max(LIMITS.maxMembers),
   rule: ruleSchema,
   ruleConfirmed: z.boolean(),

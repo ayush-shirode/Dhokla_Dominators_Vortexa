@@ -106,6 +106,20 @@ describe('rule confirmation (P1)', () => {
   });
 });
 
+describe('card name', () => {
+  it('stores the state\'s card name and prints it in the saved report', async () => {
+    const dev = await newDevice();
+    const hh = uid();
+    const ck = uid();
+    const put = await dev.put(`/households/${hh}`, household({ cardType: 'CUSTOM', cardName: 'APL (Farmer)', rule: { ...RULE_DEFAULTS[0]!, perUnitKg: 3, sourceTitle: 'Maharashtra order', sourceNote: 'typed by the household' } }));
+    expect(put.body.data.cardName).toBe('APL (Farmer)');
+    await dev.put(`/checks/${ck}`, { householdId: hh, period: '2026-10' });
+    const rep = (await dev.post(`/checks/${ck}/reports`, { language: 'en' })).body.data;
+    expect(rep.snapshot.household.cardName).toBe('APL (Farmer)');
+    expect(rep.text).toContain('CUSTOM — APL (Farmer)');
+  });
+});
+
 describe('records (P3, P4, P6)', () => {
   it('enforces evidence rules and confirmation', async () => {
     const dev = await newDevice();

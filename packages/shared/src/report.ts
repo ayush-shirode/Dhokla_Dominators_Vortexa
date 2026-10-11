@@ -35,7 +35,7 @@ export interface SnapshotRecordInput {
 }
 
 export interface SnapshotInput {
-  household: EntitlementInput & { label: string; rule: EntitlementRule };
+  household: EntitlementInput & { label: string; rule: EntitlementRule; cardName?: string | null };
   period: string;
   records: SnapshotRecordInput[];
   ruleConfirmedAt: string;
@@ -66,7 +66,7 @@ export function buildReportSnapshot(input: SnapshotInput): ReportSnapshot {
     engineVersion: ENGINE_VERSION,
     generatedAt: input.generatedAt ?? new Date().toISOString(),
     period: input.period,
-    household: { label: input.household.label, cardType: input.household.cardType, members: input.household.members },
+    household: { label: input.household.label, cardType: input.household.cardType, cardName: input.household.cardName ?? null, members: input.household.members },
     rule: { ...input.household.rule, confirmedAt: input.ruleConfirmedAt },
     summary,
     records,
@@ -254,7 +254,8 @@ export function renderReportText(snap: ReportSnapshot, lang: TemplateLanguage, e
 
   L.push(t.title, hr);
   L.push(`${t.period}: ${formatPeriod(snap.period, lang)} (${s.periodStart} – ${s.periodEnd})`);
-  L.push(`${t.household}: ${snap.household.label} · ${t.cardType}: ${snap.household.cardType} · ${t.members}: ${snap.household.members}`);
+  const card = snap.household.cardName ? `${snap.household.cardType} — ${snap.household.cardName}` : snap.household.cardType;
+  L.push(`${t.household}: ${snap.household.label} · ${t.cardType}: ${card} · ${t.members}: ${snap.household.members}`);
   if (extras.filing) {
     L.push(`[${t.filed}] ${t.filedRef}: ${extras.filing.referenceNumber} · ${t.filedOn}: ${extras.filing.filedDate}`);
   }

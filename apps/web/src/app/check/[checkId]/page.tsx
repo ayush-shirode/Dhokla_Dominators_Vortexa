@@ -21,6 +21,7 @@ import {
   computeSummary,
   assessRecords,
   formatKg,
+  getNfsaEntry,
 } from '@repo/shared';
 import type { LocalCheck, LocalHousehold, LocalRecord } from '@/lib/localTypes';
 import {
@@ -199,6 +200,14 @@ export default function CheckLedgerPage() {
               rule={household.rule}
               isConfirmed={false}
               onConfirm={handleConfirmRule}
+              caution={household.cardType === 'CUSTOM' ? null : getNfsaEntry(household.stateCode, household.cardType)?.caution ?? null}
+              blockedReason={
+                household.rule.perUnitKg <= 0
+                  ? 'Open the household and enter the monthly quantity for your card.'
+                  : household.cardType === 'CUSTOM' && !household.rule.sourceNote.trim()
+                    ? 'Open the household and say where this figure comes from.'
+                    : null
+              }
             />
           </div>
         )}

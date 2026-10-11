@@ -171,6 +171,17 @@ CREATE TABLE IF NOT EXISTS channels (
 
 export type Db = DatabaseSync;
 
+/** Old state codes (CT, OR, UT) were replaced by ISO codes (CG, OD, UK). Safe to run repeatedly. */
+function migrate(conn: DatabaseSync): void {
+  const cols = conn.prepare('PRAGMA table_info(households)').all() as Array<{ name: string }>;
+  if (!cols.some((c) => c.name === 'card_name')) conn.exec('ALTER TABLE households ADD COLUMN card_name TEXT');
+  for (const [from, to] of [['CT', 'CG'], ['OR', 'OD'], ['UT', 'UK']] as const) {
+    for (const table of ['households', 'grievance_drafts', 'channels']) {
+      conn.prepare(`UPDATE ${table} SET state_code = ? WHERE state_code = ?`).run(to, from);
+    }
+  }
+}
+
 let db: DatabaseSync | null = null;
 
 export function openDb(file?: string): DatabaseSync {
@@ -179,6 +190,7 @@ export function openDb(file?: string): DatabaseSync {
   const conn = new DatabaseSync(target);
   conn.exec('PRAGMA journal_mode = WAL;');
   conn.exec(SCHEMA);
+  migrate(conn);
   seedChannels(conn);
   return conn;
 }

@@ -11,6 +11,8 @@ export * from './guards.js';
 export * from './report.js';
 export * from './extract.js';
 export * from './faq.js';
+export { getStateCardTypes, getNfsaEntry, getOtherCardTypes, ruleFromEntry, CARD_CATALOG_CHECKED_ON, STATE_CARD_TYPES } from './cardCatalog.js';
+export type { CardTypeEntry, StateCardTypes } from './cardCatalog.js';
 export * from './api-client.js';
 
 /** Monorepo-wide config (kept from the original scaffold). */

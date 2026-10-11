@@ -172,7 +172,9 @@ Fields:
 | Field | Control | Notes |
 |---|---|---|
 | Label | text | Default "My household". |
-| Card type | 3 large radio tiles: **Antyodaya (AAY)**, **Priority Household (PHH)**, **Other / state scheme** | Each tile has a one-line explainer and a listen icon. |
+| State / UT | select from `INDIAN_STATES`, **first on the form**, no default | Decides the card names and sources below. Changing it restarts the card choice and un-confirms the rule. |
+| Card type | 3 large radio tiles: **Antyodaya (AAY)**, **Priority Household (PHH)**, **Other card** | Each tile has a one-line explainer and a listen icon. With a state chosen, AAY/PHH show the state's printed name ("Printed as: …") from `getNfsaEntry()`. |
+| Other card | select from `getOtherCardTypes(stateCode)` + "My card is not listed" (free-text name) | Stored as `Household.cardName` and printed in reports ("CUSTOM — APL (Farmer)"). **No figure is pre-filled**: the household types the kg and says where it comes from (required). Show the entry's note, its source link and, if present, the dated `reference` hint. Never apply a hint automatically. |
 | Members on card | stepper (− / number / +), 1–30 | Large buttons. |
 | Rule (kg) | numeric input, step 0.5, 0–100, max 3 decimals | Pre-filled from `RULE_DEFAULTS` on choosing AAY/PHH. |
 | Rule basis | segmented control: **per member** / **per family** | Pre-filled. |
@@ -181,6 +183,8 @@ Fields:
 | FPS (shop) number | text | Optional; shown on the grievance form. |
 | FPS (shop) name | text | Optional. |
 | Ration card number | text, masked display | **Local only.** Show a lock icon and "Stays on this phone". Never include it in API bodies. |
+
+**Where the suggested figures come from:** `packages/shared/src/cardCatalog.generated.ts`, built from `ration_data/india_ration_entitlements.csv` (research dated in `CARD_CATALOG_CHECKED_ON`). Only AAY/PHH rows from an official source with confidence MEDIUM or better carry a `rule`; the rule's `lastVerified` is the research date and its note says it was checked by automated research and not yet reviewed by a person. An entry's `caution` (sources disagree, e.g. West Bengal) must be shown on the rule card. Regenerate with `pnpm build:card-catalog` after editing the CSV.
 
 **Rule card** (the heart of P1). Shown below the rule inputs:
 ```

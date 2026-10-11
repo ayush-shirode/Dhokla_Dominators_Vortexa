@@ -13,6 +13,10 @@ interface RuleCardProps {
   confirmedDate?: string | null;
   onConfirm: () => void;
   onEdit?: () => void;
+  /** Shown prominently when official sources disagree about this figure. */
+  caution?: string | null;
+  /** Why "Use this rule" is disabled (no figure yet, no source given…). */
+  blockedReason?: string | null;
 }
 
 export function RuleCard({
@@ -23,6 +27,8 @@ export function RuleCard({
   confirmedDate,
   onConfirm,
   onEdit,
+  caution,
+  blockedReason,
 }: RuleCardProps) {
   const { formula, kg: entitledKg } = computeEntitlement({
     cardType,
@@ -89,6 +95,12 @@ export function RuleCard({
           <span className="font-medium text-stone-700 dark:text-stone-300">Last verified:</span>{' '}
           {rule.lastVerified || 'not verified yet'}
         </div>
+        {rule.sourceNote && <p className="text-[11px] text-stone-600 dark:text-stone-400">{rule.sourceNote}</p>}
+        {caution && (
+          <p className="text-[11px] p-2 rounded bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-950 dark:text-amber-200">
+            {caution}
+          </p>
+        )}
         <p className="text-[11px] text-stone-500 italic">
           State schemes may give more grain. If yours differs, edit the rule figure.
         </p>
@@ -106,14 +118,18 @@ export function RuleCard({
           </button>
         )}
         {!isConfirmed ? (
+          <div className="w-full sm:w-auto space-y-1">
           <button
             type="button"
             onClick={onConfirm}
-            className="w-full sm:w-auto px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white font-medium text-xs rounded shadow-xs flex items-center justify-center gap-1.5 transition-colors"
+            disabled={!!blockedReason}
+            className="w-full sm:w-auto px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-xs rounded shadow-xs flex items-center justify-center gap-1.5 transition-colors"
           >
             <CheckCircle2 className="w-4 h-4" />
             <span>Use this rule</span>
           </button>
+          {blockedReason && <p className="text-[11px] text-amber-800 dark:text-amber-300">{blockedReason}</p>}
+          </div>
         ) : (
           <span className="text-xs text-teal-700 dark:text-teal-400 font-medium">
             &check; Rule active for summary

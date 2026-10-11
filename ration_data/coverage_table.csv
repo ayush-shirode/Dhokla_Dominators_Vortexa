@@ -1,0 +1,37 @@
+state_code,state_name,card_categories_found,categories_with_kg_figure,of_which_state_or_UT_specific_source,categories_UNKNOWN,main_obstacle
+AN,Andaman and Nicobar Islands,2,2,0,0,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+AP,Andhra Pradesh,3,2,0,1,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+AR,Arunachal Pradesh,3,2,0,1,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+AS,Assam,3,2,0,1,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+BR,Bihar,3,2,0,1,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+CH,Chandigarh,2,2,0,0,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+CG,Chhattisgarh,3,2,0,1,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+DH,Dadra and Nagar Haveli and Daman and Diu,2,2,0,0,Legacy DD page shows zero counts; merged DN page used
+DL,Delhi,3,2,0,1,State pages blocked (robots) or contain no kg figures
+GA,Goa,3,3,3,0,Only a Nov 2023 monthly notice found; current allocation not verified
+GJ,Gujarat,3,2,0,1,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+HR,Haryana,3,2,0,1,OPH scheme unquantified
+HP,Himachal Pradesh,3,2,0,1,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+JK,Jammu and Kashmir,4,4,4,0,State page undated with 2023-era content; free-grain status not verified
+JH,Jharkhand,3,2,0,1,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+KA,Karnataka,5,2,0,3,APL/EBPL undefined on corporation page dated 2020; any state-funded extra grain unchecked
+KL,Kerala,7,2,0,5,Non-priority/NPI/APNA entitlements not stated on official page
+LA,Ladakh,2,2,0,0,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+LD,Lakshadweep,4,2,0,2,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+MP,Madhya Pradesh,3,2,0,1,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+MH,Maharashtra,7,2,2,5,"APL (Farmer), BPL Yellow and NER have no official source; NPH/White criteria only; state page undated and free-grain status unstated"
+MN,Manipur,2,2,0,0,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+ML,Meghalaya,3,2,0,1,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+MZ,Mizoram,2,2,0,0,'OWS / Additional NFSA Schemes' documents not opened
+NL,Nagaland,3,2,0,1,NFSA state page shows zero card counts; counts unverified
+OD,Odisha,3,2,0,1,NFSA page found only under code OR
+PY,Puducherry,3,2,0,1,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+PB,Punjab,2,2,0,0,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+RJ,Rajasthan,3,2,0,1,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+SK,Sikkim,3,2,0,1,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+TN,Tamil Nadu,3,2,0,1,State pages blocked (robots); only national scale and category counts
+TG,Telangana,3,2,0,1,State pages blocked (robots); only national scale and category counts
+TR,Tripura,5,2,0,3,PG vs PHH mapping unstated; festival/flood additional allocations unquantified
+UP,Uttar Pradesh,3,2,0,1,State pages blocked (robots); only national scale and category counts
+UK,Uttarakhand,3,2,0,1,State/UT entitlement order not opened; national NFSA scale used (MEDIUM)
+WB,West Bengal,7,6,4,1,State page stale (refers to 2020/21) and conflicts with national PHH figure

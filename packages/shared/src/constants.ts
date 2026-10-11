@@ -141,13 +141,16 @@ export function languageName(code: LanguageCode): string {
   return SUPPORTED_LANGUAGES.find((l) => l.code === code)?.name ?? code;
 }
 
+/** States and Union Territories, ISO 3166-2:IN codes (e.g. CG, OD, UK). */
+export const LEGACY_STATE_CODES: Record<string, string> = { CT: 'CG', OR: 'OD', UT: 'UK' };
+
 /** States and Union Territories, ISO 3166-2:IN codes. */
 export const INDIAN_STATES: IndianState[] = [
   { code: 'AP', name: 'Andhra Pradesh', type: 'state' },
   { code: 'AR', name: 'Arunachal Pradesh', type: 'state' },
   { code: 'AS', name: 'Assam', type: 'state' },
   { code: 'BR', name: 'Bihar', type: 'state' },
-  { code: 'CT', name: 'Chhattisgarh', type: 'state' },
+  { code: 'CG', name: 'Chhattisgarh', type: 'state' },
   { code: 'GA', name: 'Goa', type: 'state' },
   { code: 'GJ', name: 'Gujarat', type: 'state' },
   { code: 'HR', name: 'Haryana', type: 'state' },
@@ -161,7 +164,7 @@ export const INDIAN_STATES: IndianState[] = [
   { code: 'ML', name: 'Meghalaya', type: 'state' },
   { code: 'MZ', name: 'Mizoram', type: 'state' },
   { code: 'NL', name: 'Nagaland', type: 'state' },
-  { code: 'OR', name: 'Odisha', type: 'state' },
+  { code: 'OD', name: 'Odisha', type: 'state' },
   { code: 'PB', name: 'Punjab', type: 'state' },
   { code: 'RJ', name: 'Rajasthan', type: 'state' },
   { code: 'SK', name: 'Sikkim', type: 'state' },
@@ -169,7 +172,7 @@ export const INDIAN_STATES: IndianState[] = [
   { code: 'TG', name: 'Telangana', type: 'state' },
   { code: 'TR', name: 'Tripura', type: 'state' },
   { code: 'UP', name: 'Uttar Pradesh', type: 'state' },
-  { code: 'UT', name: 'Uttarakhand', type: 'state' },
+  { code: 'UK', name: 'Uttarakhand', type: 'state' },
   { code: 'WB', name: 'West Bengal', type: 'state' },
   { code: 'AN', name: 'Andaman and Nicobar Islands', type: 'ut' },
   { code: 'CH', name: 'Chandigarh', type: 'ut' },
