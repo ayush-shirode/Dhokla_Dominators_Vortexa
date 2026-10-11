@@ -284,8 +284,8 @@ Fields (from `GET /checks/:id/grievance` → `copyFields`), each a read-only row
 - Allow correcting (`PUT` again) or removing (`DELETE /checks/:id/filing`) the reference.
 
 ### 4.8 Channel directory (`/channels`)
-- State selector, then a list of `GrievanceChannel` cards grouped by `kind` (Portal, Status check, Helpline, District Grievance Redressal Officer, State Food Commission, Other).
-- Each card: name, value (link or `tel:`), notes, accepted languages (or "unknown"), source link, last verified date, verification badge.
+- State selector, then a list of `GrievanceChannel` cards grouped by `kind` (Portal, Ration card details, Status check, Helpline, District Grievance Redressal Officer, State Food Commission, Other).
+- Each card: name, value (link or `tel:`), notes, accepted languages (or "unknown"), source link, last verified date, verification badge (`verified` / `needs_review` / `unverified`). `card_portal` entries are each state's official ration-card details page, taken from the NFSA website's list.
 - Footer: "This directory could not be fully verified. Check numbers on your state food department's website before relying on them."
 
 ### 4.9 Help / explainer chatbot (`/help`)

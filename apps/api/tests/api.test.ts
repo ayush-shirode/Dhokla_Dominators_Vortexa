@@ -355,8 +355,22 @@ describe('offline sync', () => {
 describe('channel directory & device deletion', () => {
   it('lists unverified seed channels and protects admin edits', async () => {
     const list = (await request(app).get(`${API}/grievance-channels?stateCode=MH`)).body.data;
-    expect(list.length).toBeGreaterThanOrEqual(4);
-    expect(list.every((c: { verificationStatus: string; lastVerified: string | null }) => c.verificationStatus === 'unverified' && c.lastVerified === null)).toBe(true);
+    expect(list.length).toBeGreaterThanOrEqual(5);
+    const national = list.filter((c: { scope: string }) => c.scope === 'national');
+    expect(national.every((c: { verificationStatus: string; lastVerified: string | null }) => c.verificationStatus === 'unverified' && c.lastVerified === null)).toBe(true);
+    // State card portals come from the official NFSA list, with what we saw when testing each link.
+    const portal = list.find((c: { kind: string }) => c.kind === 'card_portal');
+    expect(portal).toMatchObject({ stateCode: 'MH', sourceUrl: 'https://nfsa.gov.in/portal/Ration_Card_State_Portals_AA' });
+    expect(portal.value).toBe('https://rcms.mahafood.gov.in/Show_Reports.aspx?RID=98');
+    const all = (await request(app).get(`${API}/grievance-channels`)).body.data;
+    const cardPortals = all.filter((c: { kind: string }) => c.kind === 'card_portal');
+    expect(cardPortals).toHaveLength(35);
+    for (const c of cardPortals) {
+      expect(c.value).toMatch(/^https?:\/\/[^\s#]+$/);
+      expect(c.value).not.toMatch(/\(X\(|S\(/); // no session tokens in stored links
+      expect(['verified', 'needs_review']).toContain(c.verificationStatus);
+      expect(c.verificationStatus === 'verified').toBe(c.lastVerified !== null);
+    }
     const body = { scope: 'state', stateCode: 'MH', name: 'Test helpline', kind: 'helpline', value: '1800-000-000', notes: '', acceptedLanguages: ['en', 'mr'], sourceUrl: null, sourceNote: 'test', lastVerified: null, verificationStatus: 'unverified' };
     expect((await request(app).put(`${API}/grievance-channels/mh-test`).send(body)).status).toBe(403);
     expect((await request(app).put(`${API}/grievance-channels/mh-test`).set('X-Admin-Token', 'test-admin-token').send(body)).status).toBe(201);

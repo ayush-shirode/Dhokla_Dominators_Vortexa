@@ -108,7 +108,7 @@ export const channelInputSchema = z.object({
   scope: z.enum(['national', 'state']),
   stateCode: stateCodeSchema.nullable(),
   name: shortText(200).min(1),
-  kind: z.enum(['portal', 'status_check', 'helpline', 'dgro', 'state_food_commission', 'other']),
+  kind: z.enum(['portal', 'status_check', 'helpline', 'dgro', 'state_food_commission', 'card_portal', 'other']),
   value: shortText(500).min(1),
   notes: shortText(2000),
   acceptedLanguages: z.array(z.string().min(2).max(20)).max(30).nullable(),

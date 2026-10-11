@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { GrievanceChannelInput } from '@repo/shared';
+import { NFSA_STATE_PORTALS_SOURCE, STATE_CARD_PORTALS } from './statePortals.js';
 
 /**
  * Initial grievance-channel directory. Every entry is marked UNVERIFIED with lastVerified = null:
@@ -83,6 +84,35 @@ export const SEED_CHANNELS: Array<GrievanceChannelInput & { id: string }> = [
   },
 ];
 
+/**
+ * State/UT ration card portals, from the official NFSA list. Only entries whose link answered
+ * (HTTP 200) are marked verified; the rest are "needs review" with what we saw, never assumed.
+ */
+export const STATE_PORTAL_CHANNELS: Array<GrievanceChannelInput & { id: string }> = STATE_CARD_PORTALS.map((p) => {
+  const ok = p.httpStatus === 200;
+  const seen =
+    p.httpStatus === 0
+      ? 'did not connect from our test network (government sites often block overseas networks, so this does not prove it is down)'
+      : `returned HTTP ${p.httpStatus} when we tested it`;
+  return {
+    id: p.id,
+    scope: 'state',
+    stateCode: p.stateCode,
+    name: `${p.name} — ration card details`,
+    kind: 'card_portal',
+    value: p.url,
+    notes:
+      'Official state portal where ration card details and reports are published. Use it to look up card, shop (FPS) and district details. Some pages need a captcha.',
+    acceptedLanguages: null,
+    sourceUrl: NFSA_STATE_PORTALS_SOURCE.url,
+    sourceNote: ok
+      ? `Listed on the NFSA website (checked ${NFSA_STATE_PORTALS_SOURCE.checkedOn}); the link responded.`
+      : `Listed on the NFSA website (checked ${NFSA_STATE_PORTALS_SOURCE.checkedOn}); the link ${seen}.`,
+    lastVerified: ok ? NFSA_STATE_PORTALS_SOURCE.checkedOn : null,
+    verificationStatus: ok ? 'verified' : 'needs_review',
+  };
+});
+
 export const DEFAULT_PORTAL_CHANNEL_ID = 'national-nfsa-portal';
 
 export function seedChannels(db: DatabaseSync): void {
@@ -90,7 +120,7 @@ export function seedChannels(db: DatabaseSync): void {
     (id, scope, state_code, name, kind, value, notes, accepted_languages_json, source_url, source_note, last_verified, verification_status, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   const now = new Date().toISOString();
-  for (const c of SEED_CHANNELS) {
+  for (const c of [...SEED_CHANNELS, ...STATE_PORTAL_CHANNELS]) {
     stmt.run(
       c.id, c.scope, c.stateCode, c.name, c.kind, c.value, c.notes,
       c.acceptedLanguages ? JSON.stringify(c.acceptedLanguages) : null,

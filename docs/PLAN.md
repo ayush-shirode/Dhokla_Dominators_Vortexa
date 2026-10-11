@@ -131,7 +131,7 @@ Soft-deletes on households/checks/records give tombstones for sync. `DELETE /dev
 
 ## 8. Open items (must be resolved before real-world use)
 1. **Verify the NFSA scale and source URL** against nfsa.gov.in. Then set `RULE_DEFAULTS_LAST_VERIFIED`. The site could not be fetched during the build.
-2. **Verify and extend the channel directory** (grievance page path, status-check page, state helplines, DGRO contacts, accepted languages) through the admin API. All seeds are currently `unverified`.
+2. **Verify and extend the channel directory.** The 35 state ration-card portals come from the NFSA website's own list (`nfsa.gov.in/portal/Ration_Card_State_Portals_AA`, 2026-10-11); 9 answered when tested, the other 26 are marked *needs review* (many government sites block overseas networks, so retest from India). The Maharashtra district report (`rcms.mahafood.gov.in … RID=98`) needs a captcha and could not be read, so no district lists are included. (grievance page path, status-check page, state helplines, DGRO contacts, accepted languages) through the admin API. All seeds are currently `unverified`.
 3. **Native-speaker review of the Hindi templates** and FAQ.
 4. **Legal review** of the report and grievance wording, and of the privacy notes. This tool is not legal advice.
 5. Aadhaar masking is **best-effort**. It depends on OCR reading the number, so it is weaker on handwriting, skewed photos and stylised fonts. The UI tells users to cover IDs anyway.

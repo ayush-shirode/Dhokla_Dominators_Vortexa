@@ -101,7 +101,8 @@ export type DraftStatus = 'pending' | 'confirmed' | 'rejected';
 /** 'local' = on this server / device with no third-party call. 'cloud' = third-party AI (Claude). */
 export type AiEngine = 'local' | 'cloud';
 export type TranslationPurpose = 'report' | 'grievance_description' | 'evidence_text';
-export type ChannelKind = 'portal' | 'status_check' | 'helpline' | 'dgro' | 'state_food_commission' | 'other';
+/** `card_portal` = where a state/UT publishes ration card details (listed on the NFSA website). */
+export type ChannelKind = 'portal' | 'status_check' | 'helpline' | 'dgro' | 'state_food_commission' | 'card_portal' | 'other';
 export type VerificationStatus = 'unverified' | 'verified' | 'needs_review';
 export type ExportFormat = 'txt' | 'html' | 'pdf' | 'json';
 

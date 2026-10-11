@@ -6,6 +6,15 @@ import { INDIAN_STATES, GrievanceChannel } from '@repo/shared';
 import { Phone, ExternalLink } from 'lucide-react';
 import { api } from '@/lib/api';
 
+const KIND_LABELS: Record<string, string> = {
+  portal: 'PORTAL',
+  card_portal: 'RATION CARD DETAILS',
+  helpline: 'HELPLINE',
+  dgro: 'DISTRICT GRIEVANCE OFFICER',
+  state_food_commission: 'STATE FOOD COMMISSION',
+  status_check: 'STATUS CHECK',
+};
+
 export default function ChannelsPage() {
   const [selectedState, setSelectedState] = useState('MH');
   const [channels, setChannels] = useState<GrievanceChannel[]>([]);
@@ -89,7 +98,7 @@ export default function ChannelsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <span className="text-[10px] uppercase font-bold tracking-wider text-teal-800 dark:text-teal-400">
-                      {ch.kind.replace(/_/g, ' ').toUpperCase()}
+                      {KIND_LABELS[ch.kind] ?? ch.kind.replace(/_/g, ' ').toUpperCase()}
                     </span>
                     <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
                       {ch.name}
@@ -103,7 +112,7 @@ export default function ChannelsPage() {
                         : 'bg-stone-100 text-stone-600 border-stone-300 dark:bg-stone-800 dark:text-stone-400'
                     }`}
                   >
-                    {ch.verificationStatus === 'verified' ? 'Verified ✓' : 'Unverified'}
+                    {ch.verificationStatus === 'verified' ? 'Verified ✓' : ch.verificationStatus === 'needs_review' ? 'Needs review' : 'Unverified'}
                   </span>
                 </div>
 
