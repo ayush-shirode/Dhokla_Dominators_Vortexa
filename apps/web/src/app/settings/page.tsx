@@ -25,7 +25,7 @@ import {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { lang, setLang, aiConsent, setAiConsent, speak } = useApp();
+  const { lang, setLang, aiConsent, setAiConsent, speak, t } = useApp();
   const [clearing, setClearing] = useState(false);
   const [exportJson, setExportJson] = useState<string | null>(null);
 
@@ -58,12 +58,12 @@ export default function SettingsPage() {
   // Double confirmation on "Delete everything"
   const handleDeleteEverything = async () => {
     const confirm1 = window.confirm(
-      'Delete everything? This removes all ration cards, monthly checks, slips, and audit reports from this phone. It cannot be undone.',
+      t('settings.deleteEverythingThisRemovesAll'),
     );
     if (!confirm1) return;
 
     const confirm2 = window.confirm(
-      'Second confirmation: Are you sure you want to permanently erase all RationSaathi data now?',
+      t('settings.secondConfirmationAreYouSure'),
     );
     if (!confirm2) return;
 
@@ -89,8 +89,8 @@ export default function SettingsPage() {
       localStorage.removeItem('rs_onboarding_completed');
       alert(
         serverDeleted
-          ? 'All data was erased from this phone and from the server backup.'
-          : 'All data was erased from this phone.',
+          ? t('settings.allDataWasErasedFrom2')
+          : t('settings.allDataWasErasedFrom'),
       );
       window.location.href = '/onboarding';
     } finally {
@@ -115,23 +115,23 @@ export default function SettingsPage() {
                 }
               }}
               className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#244b38]"
-              title="Go back"
+              title={t('common.goBack')}
             >
               <ArrowLeft className="w-5 h-5 text-stone-700 dark:text-stone-300" />
             </button>
             <h2 className="text-base font-extrabold text-[#1c3d2e] dark:text-stone-100">
               {activeSection === 'language'
-                ? 'Choose Language'
+                ? t('settings.chooseLanguage')
                 : activeSection === 'privacy'
-                ? 'Privacy & Cloud Consent'
+                ? t('settings.privacyCloudConsent')
                 : activeSection === 'about'
-                ? 'About RationSaathi'
-                : 'Settings'}
+                ? t('settings.aboutRationsaathi')
+                : t('nav.settings')}
             </h2>
           </div>
           <ListenButton
-            text="Settings. Change language, manage offline data, view state helpline directory, or configure cloud AI permissions."
-            label="Listen"
+            text={t('settings.settingsChangeLanguageManageOffline')}
+            label={t('actions.listen')}
           />
         </div>
 
@@ -153,9 +153,10 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <span className="text-xs font-bold text-stone-900 dark:text-stone-100 block">
-                      Language
+                      
+                      {t('settings.language')}
                     </span>
-                    <span className="text-[10px] text-stone-400">App display language</span>
+                    <span className="text-[10px] text-stone-400">{t('settings.appDisplayLanguage')}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-stone-500 font-bold">
@@ -175,9 +176,10 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <span className="text-xs font-bold text-stone-900 dark:text-stone-100 block">
-                      State Helplines &amp; Portals
+                      
+                      {t('settings.stateHelplinesPortals')}
                     </span>
-                    <span className="text-[10px] text-stone-400">Official toll-free phone directory</span>
+                    <span className="text-[10px] text-stone-400">{t('settings.officialTollFreePhoneDirectory')}</span>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-stone-400" />
@@ -195,9 +197,10 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <span className="text-xs font-bold text-stone-900 dark:text-stone-100 block">
-                      Privacy &amp; Cloud Permissions
+                      
+                      {t('settings.privacyCloudPermissions')}
                     </span>
-                    <span className="text-[10px] text-stone-400">Offline guarantees &amp; AI consent</span>
+                    <span className="text-[10px] text-stone-400">{t('settings.offlineGuaranteesAiConsent')}</span>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-stone-400" />
@@ -215,9 +218,10 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <span className="text-xs font-bold text-stone-900 dark:text-stone-100 block">
-                      About RationSaathi
+                      
+                      {t('settings.aboutRationsaathi')}
                     </span>
-                    <span className="text-[10px] text-stone-400">Version 1.0.0 &bull; NFSA</span>
+                    <span className="text-[10px] text-stone-400">{t('settings.version100Nfsa')}</span>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-stone-400" />
@@ -231,13 +235,15 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <span className="text-xs font-bold text-stone-900 dark:text-stone-100 block">
-                      Offline Storage
+                      
+                      {t('settings.offlineStorage')}
                     </span>
-                    <span className="text-[10px] text-stone-400">IndexedDB local database</span>
+                    <span className="text-[10px] text-stone-400">{t('settings.indexeddbLocalDatabase')}</span>
                   </div>
                 </div>
                 <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-[#edf7f2] text-[#166534] border border-[#bbf7d0]">
-                  Saved on this phone
+                  
+                  {t('sync.pending')}
                 </span>
               </div>
             </div>
@@ -245,10 +251,12 @@ export default function SettingsPage() {
             {/* Data Management Card: Export and Double Confirmation Delete */}
             <div className="bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-3xl p-5 shadow-warm space-y-3">
               <span className="text-xs font-extrabold text-[#1c3d2e] dark:text-stone-100 block">
-                Data Management
+                
+                {t('settings.dataManagement')}
               </span>
               <p className="text-xs text-stone-500 leading-relaxed">
-                Export your offline logs as JSON anytime, or permanently erase all data from this phone.
+                
+                {t('settings.exportYourOfflineLogsAs')}
               </p>
               <div className="flex items-center gap-3 pt-1">
                 <button
@@ -257,7 +265,7 @@ export default function SettingsPage() {
                   className="flex-1 min-h-[48px] px-3 bg-[#fbf9f4] hover:bg-[#f3eee3] text-[#1c3d2e] border border-[#eee7db] rounded-2xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-[#244b38]"
                 >
                   <Download className="w-4 h-4 text-[#244b38]" />
-                  <span>Export JSON</span>
+                  <span>{t('settings.exportJson')}</span>
                 </button>
                 <button
                   type="button"
@@ -266,7 +274,7 @@ export default function SettingsPage() {
                   className="flex-1 min-h-[48px] px-3 bg-[#fef2f2] hover:bg-[#fee2e2] text-rose-800 border border-rose-200 rounded-2xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-rose-600"
                 >
                   <Trash2 className="w-4 h-4" />
-                  <span>Delete everything</span>
+                  <span>{t('settings.deleteEverything')}</span>
                 </button>
               </div>
             </div>
@@ -277,7 +285,8 @@ export default function SettingsPage() {
         {activeSection === 'language' && (
           <div className="bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-3xl p-5 shadow-warm space-y-4">
             <p className="text-xs text-stone-500">
-              Select your preferred language. All screen text, receipts and audio readings will adapt.
+              
+              {t('settings.selectYourPreferredLanguageAll')}
             </p>
             <div className="space-y-2">
               {SUPPORTED_LANGUAGES.map((l) => (
@@ -321,17 +330,20 @@ export default function SettingsPage() {
         {activeSection === 'privacy' && (
           <div className="bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-3xl p-5 shadow-warm space-y-4">
             <p className="text-xs text-stone-500 leading-relaxed">
-              By default, all calculations and arithmetic run 100% locally on your phone. Optional cloud AI assistance can be enabled below with your explicit permission:
+              
+              {t('settings.byDefaultAllCalculationsAnd')}
             </p>
 
             <div className="space-y-3">
               <label className="flex items-start justify-between gap-3 p-3.5 rounded-2xl bg-[#fbf9f4] border border-[#eee7db] cursor-pointer min-h-[52px]">
                 <div>
                   <span className="text-xs font-bold block text-stone-900">
-                    Read photos with cloud OCR
+                    
+                    {t('settings.readPhotosWithCloudOcr')}
                   </span>
                   <span className="text-[11px] text-stone-500 block leading-tight mt-0.5">
-                    Sends masked photos (ID numbers blacked out) for high-accuracy text extraction.
+                    
+                    {t('settings.sendsMaskedPhotosIdNumbers')}
                   </span>
                 </div>
                 <input
@@ -345,10 +357,12 @@ export default function SettingsPage() {
               <label className="flex items-start justify-between gap-3 p-3.5 rounded-2xl bg-[#fbf9f4] border border-[#eee7db] cursor-pointer min-h-[52px]">
                 <div>
                   <span className="text-xs font-bold block text-stone-900">
-                    Translate reports with cloud assistance
+                    
+                    {t('settings.translateReportsWithCloudAssistance')}
                   </span>
                   <span className="text-[11px] text-stone-500 block leading-tight mt-0.5">
-                    Translates verified reports to regional languages.
+                    
+                    {t('settings.translatesVerifiedReportsToRegional')}
                   </span>
                 </div>
                 <input
@@ -362,10 +376,12 @@ export default function SettingsPage() {
               <label className="flex items-start justify-between gap-3 p-3.5 rounded-2xl bg-[#fbf9f4] border border-[#eee7db] cursor-pointer min-h-[52px]">
                 <div>
                   <span className="text-xs font-bold block text-stone-900">
-                    Smarter procedural answers in Help
+                    
+                    {t('settings.smarterProceduralAnswersInHelp')}
                   </span>
                   <span className="text-[11px] text-stone-500 block leading-tight mt-0.5">
-                    Sends question text to cloud model for broader NFSA procedural assistance.
+                    
+                    {t('settings.sendsQuestionTextToCloud')}
                   </span>
                 </div>
                 <input
@@ -387,19 +403,22 @@ export default function SettingsPage() {
             </div>
             <div>
               <h3 className="text-base font-extrabold text-[#1c3d2e] dark:text-stone-100">
-                RationSaathi
+                
+                {t('appName')}
               </h3>
-              <p className="text-xs text-[#c07b17] font-bold">Version 1.0.0</p>
+              <p className="text-xs text-[#c07b17] font-bold">{t('settings.version100')}</p>
             </div>
 
             <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed text-left pt-2 border-t border-[#eee7db]">
-              RationSaathi is an open, evidence-linked ration entitlement companion. It operates under deterministic rules specified by the National Food Security Act, 2013 (NFSA).
+              
+              {t('settings.rationsaathiIsAnOpenEvidence')}
             </p>
 
             <div className="p-3 bg-[#fbf9f4] rounded-2xl border border-[#eee7db] text-left text-[11px] text-stone-500 space-y-1">
-              <p className="font-bold text-stone-700">Important Notice:</p>
+              <p className="font-bold text-stone-700">{t('settings.importantNotice')}</p>
               <p>
-                RationSaathi provides informational assistance only. It never automatically submits complaints on your behalf.
+                
+                {t('settings.rationsaathiProvidesInformationalAssista')}
               </p>
             </div>
           </div>

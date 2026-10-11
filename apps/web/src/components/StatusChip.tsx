@@ -1,5 +1,6 @@
 'use client';
 
+import { useApp } from '@/context/AppContext';
 import React from 'react';
 import type { OverallLabel, RecordLabel } from '@repo/shared';
 
@@ -10,12 +11,14 @@ interface StatusChipProps {
 // Specification rule: Only four labels exist: Shortfall, Late, Unrecorded, Unclear.
 // No red alarm colours; use amber for shortfall.
 export function StatusChip({ label }: StatusChipProps) {
+  const { t } = useApp();
   const norm = String(label).toLowerCase();
 
   if (norm === 'shortfall') {
     return (
       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-[#fef3c7] text-[#92400e] border border-[#fde68a]">
-        Shortfall
+        
+        {t('labels.shortfall')}
       </span>
     );
   }
@@ -23,7 +26,8 @@ export function StatusChip({ label }: StatusChipProps) {
   if (norm === 'late') {
     return (
       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-[#fefce8] text-[#854d0e] border border-[#fef08a]">
-        Late
+        
+        {t('labels.late')}
       </span>
     );
   }
@@ -31,7 +35,8 @@ export function StatusChip({ label }: StatusChipProps) {
   if (norm === 'unrecorded') {
     return (
       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-[#f1f5f9] text-[#475569] border border-[#cbd5e1]">
-        Unrecorded
+        
+        {t('common.unrecorded')}
       </span>
     );
   }
@@ -39,7 +44,8 @@ export function StatusChip({ label }: StatusChipProps) {
   if (norm === 'unclear') {
     return (
       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-[#f3f4f6] text-[#374151] border border-[#d1d5db]">
-        Unclear
+        
+        {t('common.unclear')}
       </span>
     );
   }
@@ -47,7 +53,8 @@ export function StatusChip({ label }: StatusChipProps) {
   if (norm === 'counted') {
     return (
       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-[#edf7f2] text-[#166534] border border-[#bbf7d0]">
-        Counted
+        
+        {t('common.counted')}
       </span>
     );
   }

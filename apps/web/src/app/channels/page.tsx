@@ -1,21 +1,25 @@
 'use client';
 
+import { useApp } from '@/context/AppContext';
 import React, { useEffect, useState } from 'react';
 import { Header, BottomNav, ListenButton } from '@/components/Navigation';
 import { INDIAN_STATES, GrievanceChannel } from '@repo/shared';
 import { Phone, ExternalLink } from 'lucide-react';
 import { api } from '@/lib/api';
 
+/** Catalog keys for each channel kind. */
 const KIND_LABELS: Record<string, string> = {
-  portal: 'PORTAL',
-  card_portal: 'RATION CARD DETAILS',
-  helpline: 'HELPLINE',
-  dgro: 'DISTRICT GRIEVANCE OFFICER',
-  state_food_commission: 'STATE FOOD COMMISSION',
-  status_check: 'STATUS CHECK',
+  portal: 'channels.kindPortal',
+  card_portal: 'channels.kindCardPortal',
+  helpline: 'channels.kindHelpline',
+  dgro: 'channels.kindDgro',
+  state_food_commission: 'channels.kindFoodCommission',
+  status_check: 'channels.kindStatusCheck',
+  other: 'channels.kindOther',
 };
 
 export default function ChannelsPage() {
+  const { t } = useApp();
   const [selectedState, setSelectedState] = useState('MH');
   const [channels, setChannels] = useState<GrievanceChannel[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -33,7 +37,7 @@ export default function ChannelsPage() {
       .catch(() => {
         if (!cancelled) {
           setChannels([]);
-          setLoadError('The channel directory could not be loaded. Connect to the internet and try again.');
+          setLoadError(t('channels.theChannelDirectoryCouldNot'));
         }
       });
     return () => {
@@ -49,22 +53,25 @@ export default function ChannelsPage() {
         <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3">
           <div className="space-y-0.5">
             <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
-              Official Grievance Channels Directory
+              
+              {t('channels.officialGrievanceChannelsDirectory')}
             </h2>
             <p className="text-xs text-stone-500">
-              State portals, helplines, and DGRO redressal mechanisms under NFSA 2013.
+              
+              {t('channels.statePortalsHelplinesAndDgro')}
             </p>
           </div>
           <ListenButton
-            text="Grievance channel directory. Select your state to see portals and helplines, with their sources."
-            label="Listen"
+            text={t('channels.grievanceChannelDirectorySelectYour')}
+            label={t('actions.listen')}
           />
         </div>
 
         {/* State Selector */}
         <div className="bg-white dark:bg-stone-900 p-4 rounded-lg border border-stone-200 dark:border-stone-800 shadow-xs flex items-center justify-between gap-3">
           <label className="text-xs font-semibold text-stone-700 dark:text-stone-300">
-            Select Your State / UT:
+            
+            {t('channels.selectYourStateUt')}
           </label>
           <select
             value={selectedState}
@@ -98,7 +105,7 @@ export default function ChannelsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <span className="text-[10px] uppercase font-bold tracking-wider text-teal-800 dark:text-teal-400">
-                      {KIND_LABELS[ch.kind] ?? ch.kind.replace(/_/g, ' ').toUpperCase()}
+                      {KIND_LABELS[ch.kind] ? t(KIND_LABELS[ch.kind]!) : ch.kind}
                     </span>
                     <h3 className="text-sm font-bold text-stone-900 dark:text-stone-100">
                       {ch.name}
@@ -112,7 +119,7 @@ export default function ChannelsPage() {
                         : 'bg-stone-100 text-stone-600 border-stone-300 dark:bg-stone-800 dark:text-stone-400'
                     }`}
                   >
-                    {ch.verificationStatus === 'verified' ? 'Verified ✓' : ch.verificationStatus === 'needs_review' ? 'Needs review' : 'Unverified'}
+                    {ch.verificationStatus === 'verified' ? t('channels.verified') : ch.verificationStatus === 'needs_review' ? t('channels.needsReview') : t('channels.unverified')}
                   </span>
                 </div>
 
@@ -123,7 +130,7 @@ export default function ChannelsPage() {
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-700 text-white rounded text-xs font-semibold hover:bg-teal-800 transition-colors"
                     >
                       <Phone className="w-3.5 h-3.5" />
-                      <span>Call {ch.value}</span>
+                      <span>{t('channels.call')}{' '}{ch.value}</span>
                     </a>
                   ) : isLink ? (
                     <a
@@ -132,7 +139,7 @@ export default function ChannelsPage() {
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 rounded text-xs font-semibold hover:bg-black transition-colors"
                     >
-                      <span>Visit Portal ↗</span>
+                      <span>{t('channels.visitPortal')}</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                   ) : (
@@ -144,11 +151,12 @@ export default function ChannelsPage() {
 
                 <p className="text-xs text-stone-500 leading-normal">{ch.notes}</p>
                 <p className="text-[11px] text-stone-400 leading-normal">
-                  Accepted languages: {ch.acceptedLanguages ? ch.acceptedLanguages.join(', ') : 'unknown'} · Source: {ch.sourceNote}
+                  
+                  {t('channels.acceptedLanguages')}{' '}{ch.acceptedLanguages ? ch.acceptedLanguages.join(', ') : 'unknown'} {' '}{t('channels.source')}{' '}{ch.sourceNote}
                 </p>
 
                 <div className="pt-2 border-t border-stone-100 dark:border-stone-800 text-[11px] text-stone-400 flex items-center justify-between">
-                  <span>Last verified: {ch.lastVerified || 'not verified yet'}</span>
+                  <span>{t('common.lastVerified')}{' '}{ch.lastVerified || t('channels.notVerifiedYet')}</span>
                   {ch.sourceUrl && (
                     <a
                       href={ch.sourceUrl}
@@ -156,7 +164,8 @@ export default function ChannelsPage() {
                       rel="noopener noreferrer"
                       className="hover:underline text-stone-500"
                     >
-                      Official source ↗
+                      
+                      {t('channels.officialSource')}
                     </a>
                   )}
                 </div>
@@ -167,7 +176,8 @@ export default function ChannelsPage() {
 
         {/* Directory Disclaimer */}
         <p className="text-[11px] text-stone-500 italic p-3 bg-stone-50 dark:bg-stone-900 rounded border border-stone-200 dark:border-stone-800 leading-relaxed">
-          This directory could not be fully verified. Helplines and URLs change; check numbers on your state food department&apos;s website before relying on them.
+          
+          {t('channels.thisDirectoryCouldNotBe')}
         </p>
       </main>
 

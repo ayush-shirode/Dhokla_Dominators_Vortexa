@@ -28,11 +28,13 @@ export function Header() {
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-base font-bold text-[#1c3d2e] dark:text-stone-100 tracking-tight">
-                Ration<span className="text-[#c07b17]">Saathi</span>
+                
+                {t('common.ration')}<span className="text-[#c07b17]">{t('common.saathi')}</span>
               </span>
             </div>
             <p className="text-[10px] text-stone-500 dark:text-stone-400 font-medium tracking-wide">
-              Sahi Ration &bull; Sabka Adhikar
+              
+              {t('nav.sahiRationSabkaAdhikar')}
             </p>
           </div>
         </Link>
@@ -43,7 +45,7 @@ export function Header() {
             <button
               onClick={stopSpeaking}
               className="min-h-[44px] flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800 animate-pulse focus:outline-none focus:ring-2 focus:ring-amber-600"
-              title="Stop audio reading"
+              title={t('nav.stopAudioReading')}
             >
               <VolumeX className="w-4 h-4" />
               <span>{t('actions.stopAudio')}</span>
@@ -54,24 +56,24 @@ export function Header() {
           <button
             onClick={() => syncNow()}
             className="min-h-[40px] flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium rounded-full bg-white dark:bg-stone-900 border border-[#E8E5DD] dark:border-stone-800 text-stone-700 dark:text-stone-300 shadow-2xs hover:bg-stone-50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#244b38]"
-            title="Data storage status"
+            title={t('nav.dataStorageStatus')}
           >
             {isOnline ? (
               syncStatus === 'syncing' ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#244b38]" />
-                  <span>Syncing…</span>
+                  <span>{t('sync.syncing')}</span>
                 </>
               ) : (
                 <>
                   <ShieldCheck className="w-3.5 h-3.5 text-[#244b38]" />
-                  <span>Saved on phone</span>
+                  <span>{t('nav.savedOnPhone')}</span>
                 </>
               )
             ) : (
               <>
                 <ShieldCheck className="w-3.5 h-3.5 text-stone-500" />
-                <span>Saved on phone (Offline)</span>
+                <span>{t('nav.savedOnPhoneOffline')}</span>
               </>
             )}
           </button>
@@ -93,12 +95,13 @@ export function Header() {
 }
 
 export function BottomNav() {
+  const { t } = useApp();
   const pathname = usePathname();
 
   const navItems = [
-    { href: '/', label: 'Home', icon: Home },
-    { href: '/help', label: 'Help', icon: HelpCircle },
-    { href: '/settings', label: 'Settings', icon: Settings },
+    { href: '/', label: t('nav.home'), icon: Home },
+    { href: '/help', label: t('nav.help2'), icon: HelpCircle },
+    { href: '/settings', label: t('nav.settings'), icon: Settings },
   ];
 
   return (
@@ -183,7 +186,7 @@ export function ListenButton({ text, label, lang }: { text: string; label?: stri
       type="button"
       onClick={() => speak(text, voice)}
       className="min-h-[44px] inline-flex items-center gap-1.5 text-xs text-[#244b38] dark:text-emerald-400 hover:text-[#1b3a2b] font-medium px-2 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#244b38] transition-colors"
-      title="Listen to this text aloud"
+      title={t('nav.listenToThisTextAloud')}
     >
       <Volume2 className="w-4 h-4" />
       <span>{label && label !== 'Listen' ? label : t('actions.listen')}</span>

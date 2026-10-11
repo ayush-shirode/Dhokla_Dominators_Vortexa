@@ -1,12 +1,12 @@
 'use client';
 
+import { useApp } from '@/context/AppContext';
+import { Arithmetic } from './Arithmetic';
 import React from 'react';
 import Link from 'next/link';
 import {
   DiscrepancySummary,
   formatKg,
-  POSSIBLE_CAUSES,
-  DISCLAIMER,
 } from '@repo/shared';
 import { ListenButton } from './Navigation';
 import { StatusChip } from './StatusChip';
@@ -19,8 +19,9 @@ interface SummaryPanelProps {
 }
 
 export function SummaryPanel({ summary, checkId, lang = 'en' }: SummaryPanelProps) {
-  const causes = POSSIBLE_CAUSES[lang] || POSSIBLE_CAUSES.en;
-  const disclaimer = DISCLAIMER[lang] || DISCLAIMER.en;
+  const { t } = useApp();
+  const causes = [1, 2, 3, 4].map((i) => t(`content.cause${i}`));
+  const disclaimer = t('content.disclaimer');
 
   const isShortfall = summary.status === 'shortfall';
   const isMatches = summary.status === 'matches';
@@ -37,11 +38,12 @@ export function SummaryPanel({ summary, checkId, lang = 'en' }: SummaryPanelProp
     <div className="bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-3xl p-5 shadow-warm space-y-5">
       <div className="flex items-center justify-between border-b border-[#eee7db] dark:border-stone-800 pb-3">
         <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#1c3d2e] dark:text-stone-200">
-          Entitlement vs Received (Comparison)
+          
+          {t('summary.entitlementVsReceivedComparison')}
         </h3>
         <ListenButton
-          text={`Summary: Entitled ${summary.entitlement.kg} kg. Received counted ${summary.totals.countedKg} kg. Difference ${summary.differenceKg} kg. Status: ${summary.status}.`}
-          label="Listen"
+          text={t('summary.listen', { entitled: formatKg(summary.entitlement.kg), counted: formatKg(summary.totals.countedKg), diff: formatKg(Math.abs(summary.differenceKg)) })}
+          label={t('actions.listen')}
         />
       </div>
 
@@ -49,7 +51,8 @@ export function SummaryPanel({ summary, checkId, lang = 'en' }: SummaryPanelProp
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="p-3 bg-[#fbf9f4] dark:bg-stone-950 rounded-2xl border border-[#eee7db] dark:border-stone-800">
           <span className="text-[10px] text-stone-500 block uppercase tracking-wider font-extrabold">
-            Entitled
+            
+            {t('summary.entitled')}
           </span>
           <span className="text-2xl sm:text-3xl font-mono font-extrabold text-[#1c3d2e] dark:text-stone-100 block mt-1">
             {formatKg(summary.entitlement.kg)}
@@ -58,7 +61,8 @@ export function SummaryPanel({ summary, checkId, lang = 'en' }: SummaryPanelProp
 
         <div className="p-3 bg-[#edf7f2] dark:bg-emerald-950/20 rounded-2xl border border-[#bbf7d0] dark:border-emerald-900/60">
           <span className="text-[10px] text-[#166534] dark:text-emerald-400 block uppercase tracking-wider font-extrabold">
-            Counted
+            
+            {t('common.counted')}
           </span>
           <span className="text-2xl sm:text-3xl font-mono font-extrabold text-[#166534] dark:text-emerald-300 block mt-1">
             {formatKg(summary.totals.countedKg)}
@@ -74,7 +78,7 @@ export function SummaryPanel({ summary, checkId, lang = 'en' }: SummaryPanelProp
           }`}
         >
           <span className="text-[10px] block uppercase tracking-wider font-extrabold opacity-80">
-            {isShortfall ? 'Difference (Shortfall)' : 'Difference'}
+            {isShortfall ? t('report.differenceShortfall') : t('report.difference')}
           </span>
           <span className="text-2xl sm:text-3xl font-mono font-extrabold block mt-1">
             {formatKg(summary.differenceKg)}
@@ -85,13 +89,10 @@ export function SummaryPanel({ summary, checkId, lang = 'en' }: SummaryPanelProp
       {/* Arithmetic Block: Line by Line */}
       <div className="bg-[#fbf9f4] dark:bg-stone-950 p-4 rounded-2xl border border-[#eee7db] dark:border-stone-800 font-mono text-xs text-stone-800 dark:text-stone-200 space-y-1">
         <span className="text-[10px] uppercase tracking-wider font-sans text-stone-400 font-extrabold block mb-1">
-          Plain Line-By-Line Arithmetic
+          
+          {t('summary.plainLineByLineArithmetic')}
         </span>
-        {summary.arithmetic.map((line, idx) => (
-          <div key={idx} className="whitespace-pre">
-            {line}
-          </div>
-        ))}
+        <Arithmetic summary={summary} className="whitespace-pre" />
       </div>
 
       {/* Neutral Status Box */}
@@ -109,10 +110,10 @@ export function SummaryPanel({ summary, checkId, lang = 'en' }: SummaryPanelProp
           {isMatches && <CheckCircle2 className="w-4 h-4 text-[#166534]" />}
           <span>
             {isShortfall
-              ? `Calculated difference of ${summary.differenceKg} kg below the entitlement rule`
+              ? t('summary.below', { diff: formatKg(Math.abs(summary.differenceKg)) })
               : isAbove
-              ? `Received ${summary.differenceKg} kg more than the entitlement (advance/make-up delivery)`
-              : 'Received quantity matches the entitlement rule'}
+              ? t('summary.above', { diff: formatKg(Math.abs(summary.differenceKg)) })
+              : t('summary.receivedQuantityMatchesTheEntitlement')}
           </span>
         </div>
       </div>
@@ -121,14 +122,14 @@ export function SummaryPanel({ summary, checkId, lang = 'en' }: SummaryPanelProp
       {summary.totals.excludedCount > 0 && (
         <div className="text-xs text-stone-600 dark:text-stone-400 bg-[#fbf9f4] dark:bg-stone-950 p-4 rounded-2xl border border-[#eee7db] dark:border-stone-800">
           <p className="font-bold text-stone-800 dark:text-stone-200">
-            {summary.totals.excludedCount} records ({summary.totals.excludedKg} kg) were not counted in confirmed totals:
+            {t('summary.notCountedHeading', { n: summary.totals.excludedCount, kg: formatKg(summary.totals.excludedKg) })}
           </p>
           <ul className="list-disc list-inside mt-1.5 space-y-0.5 text-[11px]">
             {unrecordedCount > 0 && (
-              <li>{unrecordedCount} has no slip or SMS evidence (Unrecorded)</li>
+              <li>{unrecordedCount} {' '}{t('summary.hasNoSlipOrSms')}</li>
             )}
             {unclearCount > 0 && (
-              <li>{unclearCount} marked unclear or unverified</li>
+              <li>{unclearCount} {' '}{t('summary.markedUnclearOrUnverified')}</li>
             )}
           </ul>
         </div>
@@ -139,9 +140,10 @@ export function SummaryPanel({ summary, checkId, lang = 'en' }: SummaryPanelProp
         <div className="bg-[#fbf9f4] dark:bg-stone-950 p-4 rounded-2xl border border-[#eee7db] dark:border-stone-800 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-extrabold uppercase tracking-wider text-stone-700 dark:text-stone-300">
-              Possible Explanations
+              
+              {t('common.possibleExplanations')}
             </span>
-            <ListenButton text={causes.join('. ') + '. ' + disclaimer} label="Listen" />
+            <ListenButton text={causes.join('. ') + '. ' + disclaimer} label={t('actions.listen')} />
           </div>
           <ul className="list-disc list-inside text-xs text-stone-600 dark:text-stone-400 space-y-1">
             {causes.map((c, i) => (

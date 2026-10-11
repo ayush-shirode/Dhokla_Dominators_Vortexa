@@ -1,5 +1,6 @@
 'use client';
 
+import { useApp } from '@/context/AppContext';
 import React, { useState } from 'react';
 import {
   AiDraft,
@@ -13,7 +14,7 @@ import {
 import type { LocalRecord } from '@/lib/localTypes';
 import { ListenButton } from './Navigation';
 import { AlertCircle, CheckCircle2, X } from 'lucide-react';
-import { NEUTRALITY_HINT, flaggedTermsText } from '@/lib/neutrality';
+import { flaggedTermsText } from '@/lib/neutrality';
 
 interface DraftReviewProps {
   draft: AiDraft;
@@ -23,6 +24,7 @@ interface DraftReviewProps {
 }
 
 export function DraftReview({ draft, onConfirm, onDiscard, checkId }: DraftReviewProps) {
+  const { t } = useApp();
   const result = (draft.kind === 'translation' ? {} : draft.result) as Partial<ExtractionResult> & Partial<VoiceParseResult>;
   const fields = (result.fields ?? {}) as Partial<ExtractionResult['fields']>;
 
@@ -32,7 +34,7 @@ export function DraftReview({ draft, onConfirm, onDiscard, checkId }: DraftRevie
     result.suggestedEvidenceType || (result.fields as VoiceParseResult['fields'] | undefined)?.evidenceType?.value || 'note',
   );
   const [reference, setReference] = useState<string>(fields.reference?.value || '');
-  const [notes, setNotes] = useState<string>(result.extractedText || (result.transcript ? `Said: "${result.transcript}"` : ''));
+  const [notes, setNotes] = useState<string>(result.extractedText || (result.transcript ? t('draft.said', { text: result.transcript }) : ''));
   const [commodity, setCommodity] = useState<any>(fields.commodity?.value || 'mixed');
   const [isUnsure, setIsUnsure] = useState<boolean>(false);
   const [userVerifiedLowConfidence, setUserVerifiedLowConfidence] = useState<boolean>(false);
@@ -78,16 +80,18 @@ export function DraftReview({ draft, onConfirm, onDiscard, checkId }: DraftRevie
       <div className="flex items-center justify-between border-b border-[#eee7db] dark:border-stone-800 pb-3">
         <div>
           <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#244b38] bg-[#edf7f2] px-2 py-0.5 rounded-full">
-            Review Draft &bull; {draft.kind.toUpperCase()}
+            
+            {t('draft.reviewDraft')}{' '}{draft.kind.toUpperCase()}
           </span>
           <h3 className="text-base font-extrabold text-[#1c3d2e] dark:text-stone-100 mt-1">
-            Review Extracted Information
+            
+            {t('draft.reviewExtractedInformation')}
           </h3>
         </div>
         <button
           onClick={onDiscard}
           className="min-h-[44px] min-w-[44px] flex items-center justify-center text-stone-400 hover:text-stone-600 rounded-full"
-          title="Discard"
+          title={t('common.discard')}
         >
           <X className="w-5 h-5" />
         </button>
@@ -97,9 +101,10 @@ export function DraftReview({ draft, onConfirm, onDiscard, checkId }: DraftRevie
       {draft.readBack?.text && (
         <div className="p-3.5 bg-[#fefce8] border border-[#fef08a] rounded-2xl flex items-start justify-between gap-2 text-xs text-[#854d0e]">
           <p className="leading-relaxed font-sans">
-            &ldquo;{draft.readBack.text}&rdquo;
+            
+            {t('common.x3')}{draft.readBack.text}{t('common.x2')}
           </p>
-          <ListenButton text={draft.readBack.text} label="Listen" />
+          <ListenButton text={draft.readBack.text} label={t('actions.listen')} />
         </div>
       )}
 
@@ -113,11 +118,12 @@ export function DraftReview({ draft, onConfirm, onDiscard, checkId }: DraftRevie
       >
         <div className="flex items-center justify-between mb-1">
           <label className="text-xs font-extrabold text-stone-700 dark:text-stone-300">
-            Quantity (kg)
+            
+            {t('draft.quantityKg')}
           </label>
           {lowConfidenceFields.includes('quantityKg') && (
             <span className="text-[11px] text-amber-900 font-extrabold flex items-center gap-1 bg-amber-200 px-2 py-0.5 rounded-full">
-              <AlertCircle className="w-3.5 h-3.5" /> Please check
+              <AlertCircle className="w-3.5 h-3.5" /> {' '}{t('draft.pleaseCheck')}
             </span>
           )}
         </div>
@@ -129,7 +135,7 @@ export function DraftReview({ draft, onConfirm, onDiscard, checkId }: DraftRevie
             onChange={(e) => setQuantityKg(parseFloat(e.target.value) || 0)}
             className="w-full px-3 py-2 text-2xl font-mono font-extrabold bg-white dark:bg-stone-800 border border-[#eee7db] rounded-xl text-[#1c3d2e] dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
           />
-          <span className="text-base font-bold text-stone-500">kg</span>
+          <span className="text-base font-bold text-stone-500">{t('common.kg')}</span>
         </div>
       </div>
 
@@ -143,11 +149,12 @@ export function DraftReview({ draft, onConfirm, onDiscard, checkId }: DraftRevie
       >
         <div className="flex items-center justify-between mb-1">
           <label className="text-xs font-extrabold text-stone-700 dark:text-stone-300">
-            Distribution Date
+            
+            {t('draft.distributionDate')}
           </label>
           {lowConfidenceFields.includes('date') && (
             <span className="text-[11px] text-amber-900 font-extrabold flex items-center gap-1 bg-amber-200 px-2 py-0.5 rounded-full">
-              <AlertCircle className="w-3.5 h-3.5" /> Please check
+              <AlertCircle className="w-3.5 h-3.5" /> {' '}{t('draft.pleaseCheck')}
             </span>
           )}
         </div>
@@ -170,11 +177,12 @@ export function DraftReview({ draft, onConfirm, onDiscard, checkId }: DraftRevie
         >
           <div className="flex items-center justify-between mb-1">
             <label className="text-xs font-extrabold text-stone-700 dark:text-stone-300">
-              Receipt / Slip Number
+              
+              {t('draft.receiptSlipNumber')}
             </label>
             {lowConfidenceFields.includes('reference') && (
               <span className="text-[11px] text-amber-900 font-extrabold flex items-center gap-1 bg-amber-200 px-2 py-0.5 rounded-full">
-                <AlertCircle className="w-3.5 h-3.5" /> Please check
+                <AlertCircle className="w-3.5 h-3.5" /> {' '}{t('draft.pleaseCheck')}
               </span>
             )}
           </div>
@@ -198,14 +206,15 @@ export function DraftReview({ draft, onConfirm, onDiscard, checkId }: DraftRevie
               className="w-4 h-4 mt-0.5 rounded text-[#244b38] focus:ring-[#244b38]"
             />
             <span className="font-bold">
-              I checked these highlighted values against my actual slip/receipt.
+              
+              {t('draft.iCheckedTheseHighlightedValues')}
             </span>
           </label>
         )}
 
         {hasLowConfidence && !userVerifiedLowConfidence && (
           <p className="text-[11px] text-stone-600 bg-[#fbf9f4] p-3 rounded-xl border border-[#eee7db] leading-relaxed">
-            <strong>Note:</strong> Since highlighted fields are not checked, this record will be saved as <strong className="text-stone-900">Unclear</strong> and will not be counted in totals until verified.
+            <strong>{t('common.note')}</strong> {t('draft.willBeUnclear')}
           </p>
         )}
 
@@ -216,7 +225,7 @@ export function DraftReview({ draft, onConfirm, onDiscard, checkId }: DraftRevie
             onChange={(e) => setIsUnsure(e.target.checked)}
             className="w-4 h-4 mt-0.5 rounded text-[#244b38]"
           />
-          <span>Mark as Unclear (&quot;I am not sure about this amount&quot; &mdash; will not be counted in totals)</span>
+          <span>{t('draft.markAsUnclearIAm')}</span>
         </label>
       </div>
 
@@ -227,7 +236,8 @@ export function DraftReview({ draft, onConfirm, onDiscard, checkId }: DraftRevie
           onClick={onDiscard}
           className="flex-1 min-h-[48px] px-4 py-2 text-xs font-extrabold text-stone-700 bg-[#fbf9f4] hover:bg-[#f3eee3] border border-[#eee7db] rounded-2xl transition-colors"
         >
-          Discard
+          
+          {t('common.discard')}
         </button>
         <button
           type="button"
@@ -236,7 +246,7 @@ export function DraftReview({ draft, onConfirm, onDiscard, checkId }: DraftRevie
           className="flex-1 min-h-[48px] px-4 py-2 text-xs font-extrabold text-white bg-[#244b38] hover:bg-[#1b3a2b] rounded-2xl shadow-warm transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
         >
           <CheckCircle2 className="w-4 h-4" />
-          <span>Confirm &amp; Save</span>
+          <span>{t('draft.confirmSave')}</span>
         </button>
       </div>
     </div>

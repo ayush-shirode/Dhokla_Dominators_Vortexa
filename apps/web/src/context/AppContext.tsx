@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { api, registerDevice } from '@/lib/api';
 import { runSync } from '@/lib/sync';
+import { errorKey } from '@/lib/errors';
 import { ConsentDialog, type CloudFeature, type ConsentAnswer } from '@/components/ConsentDialog';
 import { getSetting, setSetting } from '@/lib/db';
 import { LanguageCode, SUPPORTED_LANGUAGES } from '@repo/shared';
@@ -159,9 +160,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const res = await runSync();
       setSyncStatus(res.errors.length > 0 ? 'pending' : 'synced');
       if (res.updatedFromServer > 0) {
-        setSyncNotice(`${res.updatedFromServer} item(s) were updated from a newer copy on the server.`);
+        setSyncNotice(t('sync.updatedFromServer', { n: res.updatedFromServer }));
       } else if (res.errors.length > 0) {
-        setSyncNotice(`${res.errors.length} change(s) could not be backed up: ${res.errors[0]!.error.message}`);
+        setSyncNotice(t('sync.notBackedUp', { n: res.errors.length, reason: t(errorKey({ code: res.errors[0]!.error.code }, 'errors.generic')) }));
       }
     } catch {
       setSyncStatus('pending');

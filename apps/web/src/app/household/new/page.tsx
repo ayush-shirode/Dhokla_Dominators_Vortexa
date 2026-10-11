@@ -1,5 +1,6 @@
 'use client';
 
+import { useApp } from '@/context/AppContext';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePathSegment } from '@/lib/routeParams';
@@ -25,11 +26,12 @@ import {
 } from 'lucide-react';
 
 export default function HouseholdSetupPage() {
+  const { t } = useApp();
   const router = useRouter();
   const pathId = usePathSegment(2);
   const editId = pathId && pathId !== 'new' ? pathId : undefined;
 
-  const [label, setLabel] = useState('My household');
+  const [label, setLabel] = useState(t('household.myHousehold'));
   const [cardType, setCardType] = useState<CardType>('PHH');
   /** The state's own name for the card (only for categories other than AAY/PHH). */
   const [cardName, setCardName] = useState<string | null>(null);
@@ -38,9 +40,9 @@ export default function HouseholdSetupPage() {
   const [members, setMembers] = useState<number>(4);
   const [perUnitKg, setPerUnitKg] = useState<number>(5);
   const [basis, setBasis] = useState<RuleBasis>('perMember');
-  const [sourceTitle, setSourceTitle] = useState('National Food Security Act, 2013 — NFSA entitlements');
+  const [sourceTitle, setSourceTitle] = useState(t('household.nationalFoodSecurityAct2013'));
   const [sourceUrl, setSourceUrl] = useState<string | null>('https://nfsa.gov.in/');
-  const [sourceNote, setSourceNote] = useState('National scale; state schemes may differ.');
+  const [sourceNote, setSourceNote] = useState(t('household.nationalScaleStateSchemesMay'));
   const [lastVerified, setLastVerified] = useState<string | null>(null);
 
   const [ruleConfirmed, setRuleConfirmed] = useState(false);
@@ -109,7 +111,7 @@ export default function HouseholdSetupPage() {
       setCaution(entry?.caution ?? null);
     } else {
       setPerUnitKg(0);
-      setSourceTitle(`${INDIAN_STATES.find((st) => st.code === state)?.name ?? 'State'} scheme (figure entered by the household)`);
+      setSourceTitle(t('household.customSourceTitle', { state: INDIAN_STATES.find((st) => st.code === state)?.name ?? t('grievance.state') }));
       setSourceUrl(null);
       setSourceNote('');
       setLastVerified(null);
@@ -145,9 +147,9 @@ export default function HouseholdSetupPage() {
   /** Why the rule cannot be confirmed yet, or null when it can. */
   const confirmBlockedReason: string | null =
     perUnitKg <= 0
-      ? 'Enter the monthly quantity for your card.'
+      ? t('household.enterTheMonthlyQuantityFor')
       : cardType === 'CUSTOM' && !sourceNote.trim()
-        ? 'Say where this figure comes from (for example, your state food department order or the shop notice).'
+        ? t('household.sayWhereThisFigureComes')
         : null;
 
   const handleMembersChange = (newVal: number) => {
@@ -201,7 +203,7 @@ export default function HouseholdSetupPage() {
       await saveLocalHousehold(household);
       setRuleConfirmed(true);
       setRuleConfirmedAt(now);
-      setToastMessage('Rule confirmed successfully!');
+      setToastMessage(t('household.ruleConfirmedSuccessfully'));
 
       setTimeout(() => {
         router.push('/?notice=rule_confirmed');
@@ -225,21 +227,22 @@ export default function HouseholdSetupPage() {
               <button
                 onClick={() => router.back()}
                 className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors focus:outline-none focus:ring-2 focus:ring-[#244b38]"
-                title="Go back"
+                title={t('common.goBack')}
               >
                 <ArrowLeft className="w-5 h-5 text-stone-700 dark:text-stone-300" />
               </button>
               <h1 className="text-base font-semibold text-stone-900 dark:text-stone-100">
-                {editId ? 'Edit Ration Card Setup' : 'Ration Card Setup'}
+                {editId ? t('household.editRationCardSetup') : t('household.rationCardSetup')}
               </h1>
             </div>
             <ListenButton
-              text="Ration card setup. Choose your card type, number of members, state and shop details, and confirm your statutory entitlement rule."
-              label="Listen"
+              text={t('household.rationCardSetupChooseYour')}
+              label={t('actions.listen')}
             />
           </div>
           <p className="text-xs text-stone-500 pl-11 mt-0.5">
-            Configure your card type and family members to verify statutory entitlements.
+            
+            {t('household.configureYourCardTypeAnd')}
           </p>
         </div>
 
@@ -252,13 +255,13 @@ export default function HouseholdSetupPage() {
 
         {/* SECTION 0: State first. It decides the card names and sources shown below. */}
         <section className="bg-white dark:bg-[#202622] border border-[#E8E5DD] dark:border-stone-800 rounded-2xl p-5 shadow-subtle space-y-2">
-          <h2 className="text-xs font-semibold text-stone-800 dark:text-stone-200">Your State / UT</h2>
+          <h2 className="text-xs font-semibold text-stone-800 dark:text-stone-200">{t('household.yourStateUt')}</h2>
           <select
             value={stateCode ?? ''}
             onChange={(e) => handleSelectState(e.target.value || null)}
             className="w-full min-h-[44px] px-3 py-2 text-sm bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
           >
-            <option value="">Select your state…</option>
+            <option value="">{t('household.selectYourState')}</option>
             {INDIAN_STATES.map((st) => (
               <option key={st.code} value={st.code}>
                 {st.name}
@@ -266,20 +269,21 @@ export default function HouseholdSetupPage() {
             ))}
           </select>
           {!stateCode && (
-            <p className="text-[11px] text-stone-500">Choose your state to see the card names it uses. You can also continue without it.</p>
+            <p className="text-[11px] text-stone-500">{t('household.chooseYourStateToSee')}</p>
           )}
         </section>
 
         {/* SECTION 1: Ration Card Type (White card, subtle border) */}
         <section className="bg-white dark:bg-[#202622] border border-[#E8E5DD] dark:border-stone-800 rounded-2xl p-5 shadow-subtle space-y-3">
           <h2 className="text-xs font-semibold text-stone-800 dark:text-stone-200">
-            Ration Card Type
+            
+            {t('household.rationCardType')}
           </h2>
           <div className="grid grid-cols-3 gap-2.5">
             {[
-              { type: 'PHH' as CardType, title: 'Priority (PHH)', desc: '5 kg/member' },
-              { type: 'AAY' as CardType, title: 'Antyodaya (AAY)', desc: '35 kg/family' },
-              { type: 'CUSTOM' as CardType, title: 'Other card', desc: stateName ? `Issued in ${stateName}` : 'State scheme' },
+              { type: 'PHH' as CardType, title: t('household.priorityPhh'), desc: '5 kg/member' },
+              { type: 'AAY' as CardType, title: t('household.antyodayaAay'), desc: '35 kg/family' },
+              { type: 'CUSTOM' as CardType, title: t('household.otherCard'), desc: stateName ? t('household.issuedIn', { state: stateName }) : t('household.stateScheme') },
             ].map((item) => {
               const isSelected = cardType === item.type;
               return (
@@ -306,7 +310,7 @@ export default function HouseholdSetupPage() {
           </div>
 
           {(cardType === 'PHH' || cardType === 'AAY') && getNfsaEntry(stateCode, cardType) && (
-            <p className="text-[11px] text-stone-500">Printed on {stateName ?? 'state'} cards as: <span className="font-medium text-stone-700 dark:text-stone-300">{getNfsaEntry(stateCode, cardType)!.name}</span></p>
+            <p className="text-[11px] text-stone-500">{t('household.printedAs', { state: stateName ?? '', name: getNfsaEntry(stateCode, cardType)!.name })}</p>
           )}
 
           {/* Other cards: the state's own list. No figure is assumed for any of them. */}
@@ -314,36 +318,36 @@ export default function HouseholdSetupPage() {
             <div className="pt-1 space-y-3">
               {otherCards.length > 0 ? (
                 <div>
-                  <span className="text-[11px] font-medium text-stone-500 block mb-1">Which card do you have?</span>
+                  <span className="text-[11px] font-medium text-stone-500 block mb-1">{t('household.whichCardDoYouHave')}</span>
                   <select
                     value={otherCards.some((e) => e.name === cardName) ? cardName ?? '' : cardName ? '__other__' : ''}
                     onChange={(e) => handleSelectOther(e.target.value === '__other__' ? '' : e.target.value)}
                     className="w-full min-h-[44px] px-3 py-2 text-xs bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
                   >
-                    <option value="">Select your card…</option>
+                    <option value="">{t('household.selectYourCard')}</option>
                     {otherCards.map((e) => (
                       <option key={e.id} value={e.name}>
                         {e.name}
                         {e.code ? ` (${e.code})` : ''}
                       </option>
                     ))}
-                    <option value="__other__">My card is not listed</option>
+                    <option value="__other__">{t('household.myCardIsNotListed')}</option>
                   </select>
                 </div>
               ) : (
                 <p className="text-[11px] text-stone-500">
-                  {stateName ? `We have no other card names listed for ${stateName}.` : 'Choose your state to see its card names.'}
+                  {stateName ? t('household.noOtherCards', { state: stateName }) : t('household.chooseYourStateToSee2')}
                 </p>
               )}
               {!chosenOther && (
                 <div>
-                  <span className="text-[11px] font-medium text-stone-500 block mb-1">Card name (as printed on your card)</span>
+                  <span className="text-[11px] font-medium text-stone-500 block mb-1">{t('household.cardNameAsPrintedOn')}</span>
                   <input
                     type="text"
                     value={cardName ?? ''}
                     maxLength={120}
                     onChange={(e) => setCardName(e.target.value || null)}
-                    placeholder="e.g. APL (Farmer)"
+                    placeholder={t('household.eGAplFarmer')}
                     className="w-full min-h-[44px] px-3 py-2 text-xs bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
                   />
                 </div>
@@ -355,26 +359,28 @@ export default function HouseholdSetupPage() {
                     <p className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200">
                       {chosenOther.reference.text}{' '}
                       <a href={chosenOther.reference.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline">
-                        Source ↗
+                        
+                        {t('household.source')}
                       </a>
                     </p>
                   )}
                   <a href={chosenOther.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline text-[#244b38] dark:text-emerald-400">
-                    Where this card is listed ↗
+                    
+                    {t('household.whereThisCardIsListed')}
                   </a>
                 </div>
               )}
               <div>
-                <span className="text-[11px] font-medium text-stone-500 block mb-1">Where does your monthly quantity come from?</span>
+                <span className="text-[11px] font-medium text-stone-500 block mb-1">{t('household.whereDoesYourMonthlyQuantity')}</span>
                 <input
                   type="text"
                   value={sourceNote}
                   maxLength={500}
                   onChange={(e) => handleSourceNoteChange(e.target.value)}
-                  placeholder="e.g. state food department order, notice at the shop, SMS"
+                  placeholder={t('household.eGStateFoodDepartment')}
                   className="w-full min-h-[44px] px-3 py-2 text-xs bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
                 />
-                <p className="text-[11px] text-stone-500 mt-1">No official figure is filled in for this card. Enter the quantity below and say where it comes from.</p>
+                <p className="text-[11px] text-stone-500 mt-1">{t('household.noOfficialFigureIsFilled')}</p>
               </div>
             </div>
           )}
@@ -385,9 +391,10 @@ export default function HouseholdSetupPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xs font-semibold text-stone-800 dark:text-stone-200">
-                Household Members on Card (1–30)
+                
+                {t('household.householdMembersOnCard1')}
               </h2>
-              <p className="text-[11px] text-stone-500 mt-0.5">Listed on your official ration card</p>
+              <p className="text-[11px] text-stone-500 mt-0.5">{t('household.listedOnYourOfficialRation')}</p>
             </div>
           </div>
 
@@ -397,7 +404,7 @@ export default function HouseholdSetupPage() {
               onClick={() => handleMembersChange(members - 1)}
               disabled={members <= 1}
               className="w-12 h-12 rounded-xl bg-[#FAF8F1] hover:bg-[#eae6d9] dark:bg-stone-800 border border-[#E8E5DD] text-stone-800 dark:text-stone-100 flex items-center justify-center font-bold text-lg transition-all disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
-              title="Decrease members"
+              title={t('household.decreaseMembers')}
             >
               <Minus className="w-5 h-5" />
             </button>
@@ -411,7 +418,7 @@ export default function HouseholdSetupPage() {
               onClick={() => handleMembersChange(members + 1)}
               disabled={members >= 30}
               className="w-12 h-12 rounded-xl bg-[#FAF8F1] hover:bg-[#eae6d9] dark:bg-stone-800 border border-[#E8E5DD] text-stone-800 dark:text-stone-100 flex items-center justify-center font-bold text-lg transition-all disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
-              title="Increase members"
+              title={t('household.increaseMembers')}
             >
               <Plus className="w-5 h-5" />
             </button>
@@ -421,7 +428,8 @@ export default function HouseholdSetupPage() {
         {/* SECTION 3: Rule Basis Toggle & Quantity (White card, subtle border) */}
         <section className="bg-white dark:bg-[#202622] border border-[#E8E5DD] dark:border-stone-800 rounded-2xl p-5 shadow-subtle space-y-3">
           <h2 className="text-xs font-semibold text-stone-800 dark:text-stone-200">
-            Rule Basis &amp; Entitlement Quantity
+            
+            {t('household.ruleBasisEntitlementQuantity')}
           </h2>
 
           <div className="grid grid-cols-2 p-1 bg-[#FAF8F1] dark:bg-stone-900 rounded-xl border border-[#E8E5DD]">
@@ -434,7 +442,8 @@ export default function HouseholdSetupPage() {
                   : 'text-stone-600 dark:text-stone-400'
               }`}
             >
-              Per Member
+              
+              {t('household.perMember')}
             </button>
             <button
               type="button"
@@ -445,12 +454,13 @@ export default function HouseholdSetupPage() {
                   : 'text-stone-600 dark:text-stone-400'
               }`}
             >
-              Per Family
+              
+              {t('household.perFamily')}
             </button>
           </div>
 
           <div className="pt-2 flex items-center justify-between">
-            <span className="text-xs text-stone-600">Quantity per {basis === 'perMember' ? 'member' : 'family'}:</span>
+            <span className="text-xs text-stone-600">{t(basis === 'perMember' ? 'household.quantityPerMember' : 'household.quantityPerFamily')}</span>
             <div className="flex items-center gap-1.5">
               <input
                 type="number"
@@ -458,11 +468,11 @@ export default function HouseholdSetupPage() {
                 min="0"
                 max="100"
                 value={perUnitKg || ''}
-                placeholder="kg"
+                placeholder={t('common.kg')}
                 onChange={(e) => handleKgChange(parseFloat(e.target.value) || 0)}
                 className="w-20 min-h-[40px] px-3 py-1.5 text-center text-sm font-mono font-bold bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
               />
-              <span className="text-xs text-stone-500">kg</span>
+              <span className="text-xs text-stone-500">{t('common.kg')}</span>
             </div>
           </div>
         </section>
@@ -470,17 +480,18 @@ export default function HouseholdSetupPage() {
         {/* SECTION 4: State, District & Shop Details (White card, subtle border) */}
         <section className="bg-white dark:bg-[#202622] border border-[#E8E5DD] dark:border-stone-800 rounded-2xl p-5 shadow-subtle space-y-3">
           <h2 className="text-xs font-semibold text-stone-800 dark:text-stone-200">
-            District &amp; Shop (FPS) Details
+            
+            {t('household.districtShopFpsDetails')}
           </h2>
 
           <div className="grid grid-cols-1 gap-2.5">
             <div>
-              <span className="text-[11px] font-medium text-stone-500 block mb-1">District</span>
+              <span className="text-[11px] font-medium text-stone-500 block mb-1">{t('common.district')}</span>
               <input
                 type="text"
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
-                placeholder="District name"
+                placeholder={t('household.districtName')}
                 className="w-full min-h-[44px] px-3 py-2 text-xs bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
               />
             </div>
@@ -488,7 +499,7 @@ export default function HouseholdSetupPage() {
 
           <div className="grid grid-cols-2 gap-2.5 pt-1">
             <div>
-              <span className="text-[11px] font-medium text-stone-500 block mb-1">Shop / FPS Number</span>
+              <span className="text-[11px] font-medium text-stone-500 block mb-1">{t('household.shopFpsNumber')}</span>
               <input
                 type="text"
                 value={fpsNo}
@@ -499,12 +510,12 @@ export default function HouseholdSetupPage() {
             </div>
 
             <div>
-              <span className="text-[11px] font-medium text-stone-500 block mb-1">Shop Name</span>
+              <span className="text-[11px] font-medium text-stone-500 block mb-1">{t('household.shopName')}</span>
               <input
                 type="text"
                 value={fpsName}
                 onChange={(e) => setFpsName(e.target.value)}
-                placeholder="e.g. Ration Store 12"
+                placeholder={t('household.eGRationStore12')}
                 className="w-full min-h-[44px] px-3 py-2 text-xs bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
               />
             </div>
@@ -515,22 +526,24 @@ export default function HouseholdSetupPage() {
             <div className="flex items-center justify-between mb-1">
               <span className="text-[11px] font-medium text-stone-700 dark:text-stone-300 flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5 text-[#244b38]" />
-                <span>Ration Card Number</span>
+                <span>{t('household.rationCardNumber')}</span>
               </span>
               <span className="text-[10px] text-[#244b38] font-medium bg-[#edf7f2] px-2 py-0.5 rounded-full">
-                Stays on this phone
+                
+                {t('common.phoneLock')}
               </span>
             </div>
             <input
               type="text"
               value={rationCardNo}
               onChange={(e) => setRationCardNo(e.target.value)}
-              placeholder="Enter full number"
+              placeholder={t('household.enterFullNumber')}
               className="w-full min-h-[44px] px-3 py-2 text-xs font-mono bg-[#FAF8F1] dark:bg-stone-950 border border-[#E8E5DD] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#244b38]"
             />
             {rationCardNo && (
               <p className="text-[11px] text-stone-500 mt-1 font-mono">
-                Display format: •••• •••• {lastFour}
+                
+                {t('household.displayFormat', { last4: lastFour })}
               </p>
             )}
           </div>

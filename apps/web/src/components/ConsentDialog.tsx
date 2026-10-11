@@ -1,29 +1,21 @@
 'use client';
 
+import { useApp } from '@/context/AppContext';
 import React from 'react';
 import { ShieldCheck } from 'lucide-react';
 
 export type CloudFeature = 'photo' | 'translate' | 'cloudAssist';
 export type ConsentAnswer = 'once' | 'always' | 'no';
 
-/** What each cloud feature sends (FRONTEND_SPEC §9). */
+/** What each cloud feature sends (FRONTEND_SPEC §9), as catalog keys. */
 export const CLOUD_FEATURE_INFO: Record<CloudFeature, { title: string; sends: string }> = {
-  photo: {
-    title: 'Read this photo with an AI service?',
-    sends: 'The photo is sent with Aadhaar numbers already blacked out. Your ration card number is not sent.',
-  },
-  translate: {
-    title: 'Translate with an AI service?',
-    sends:
-      'The report or description text is sent (month, quantities, shop name and number). Your ration card number and Aadhaar are never sent. You will check the translation before it is used.',
-  },
-  cloudAssist: {
-    title: 'Use an AI service for this?',
-    sends: 'Only the words you typed or said are sent, with ID numbers removed. Audio never leaves your phone.',
-  },
+  photo: { title: 'consent.photoTitle', sends: 'consent.photoSends' },
+  translate: { title: 'consent.translateTitle', sends: 'consent.translateSends' },
+  cloudAssist: { title: 'consent.assistTitle', sends: 'consent.assistSends' },
 };
 
 export function ConsentDialog({ feature, onAnswer }: { feature: CloudFeature; onAnswer: (a: ConsentAnswer) => void }) {
+  const { t } = useApp();
   const info = CLOUD_FEATURE_INFO[feature];
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="consent-title">
@@ -32,21 +24,24 @@ export function ConsentDialog({ feature, onAnswer }: { feature: CloudFeature; on
           <ShieldCheck className="w-5 h-5 text-teal-700 shrink-0 mt-0.5" />
           <div className="space-y-1">
             <h2 id="consent-title" className="text-sm font-bold text-stone-900 dark:text-stone-100">
-              {info.title}
+              {t(info.title)}
             </h2>
-            <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">{info.sends}</p>
-            <p className="text-[11px] text-stone-500">The result is always a draft that you check before it is saved.</p>
+            <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">{t(info.sends)}</p>
+            <p className="text-[11px] text-stone-500">{t('consent.theResultIsAlwaysA')}</p>
           </div>
         </div>
         <div className="grid grid-cols-1 gap-2">
           <button type="button" onClick={() => onAnswer('once')} className="min-h-12 px-4 py-2.5 bg-teal-700 hover:bg-teal-800 text-white text-sm font-semibold rounded">
-            Send once
+            
+            {t('common.sendOnce')}
           </button>
           <button type="button" onClick={() => onAnswer('always')} className="min-h-12 px-4 py-2.5 border border-teal-700 text-teal-800 dark:text-teal-300 text-sm font-semibold rounded">
-            Always allow (change in Settings)
+            
+            {t('consent.alwaysAllowChangeInSettings')}
           </button>
           <button type="button" onClick={() => onAnswer('no')} className="min-h-12 px-4 py-2.5 border border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300 text-sm font-medium rounded">
-            No, I&apos;ll do it myself
+            
+            {t('consent.noILlDoIt')}
           </button>
         </div>
       </div>

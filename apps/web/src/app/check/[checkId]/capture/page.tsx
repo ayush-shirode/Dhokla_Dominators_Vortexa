@@ -33,7 +33,7 @@ export default function PhotoCapturePage() {
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingPhoto[]>([]);
   const [uploadedPhotoId, setUploadedPhotoId] = useState<string | null>(null);
-  const { capabilities, aiConsent, requestCloudConsent, isOnline } = useApp();
+  const { capabilities, aiConsent, requestCloudConsent, isOnline, t } = useApp();
 
   const refreshPending = () => getPendingPhotos(checkId).then(setPending).catch(() => setPending([]));
 
@@ -54,11 +54,11 @@ export default function PhotoCapturePage() {
   };
 
   const RETAKE_TIPS: Record<string, string> = {
-    blurry: 'Hold the phone still and tap the screen to focus on the text',
-    too_dark: 'Move to brighter light or near a window',
-    overexposed: 'Avoid direct sunlight or flash glare on the paper',
-    low_contrast: 'Place the slip on a plain, dark surface so the text stands out',
-    too_small: 'Move closer so the slip fills the frame',
+    blurry: t('capture.holdThePhoneStillAnd'),
+    too_dark: t('capture.moveToBrighterLightOr'),
+    overexposed: t('capture.avoidDirectSunlightOrFlash'),
+    low_contrast: t('capture.placeTheSlipOnA'),
+    too_small: t('capture.moveCloserSoTheSlip'),
   };
 
   /** Re-encodes to JPEG ≤ 2000 px so uploads are small; falls back to the original file. */
@@ -106,13 +106,13 @@ export default function PhotoCapturePage() {
           refreshPending();
           setPhotoFile(null);
           setPreviewUrl(null);
-          setInfoMsg('You are offline. The photo is saved on this phone and will be read when you are back online — tap "Read now" then.');
+          setInfoMsg(t('capture.youAreOfflineThePhoto'));
         } else {
-          setInfoMsg('Still offline. Try again when you have a connection.');
+          setInfoMsg(t('capture.stillOfflineTryAgainWhen'));
         }
       } else if (e?.code === 'RETAKE_PHOTO') {
         const issues: string[] = (e.details as { issues?: string[] })?.issues ?? [];
-        setErrorMsg('The photo is not clear enough to read reliably. Please retake it.');
+        setErrorMsg(t('capture.thePhotoIsNotClear'));
         setRetakeTips(issues.map((i) => RETAKE_TIPS[i]).filter(Boolean));
         if (opts.pendingId) {
           await deletePendingPhoto(opts.pendingId);
@@ -120,7 +120,7 @@ export default function PhotoCapturePage() {
         }
       } else if (e?.code === 'MASKING_UNAVAILABLE') {
         const ok = window.confirm(
-          'This server cannot scan the photo for Aadhaar numbers. Please make sure no Aadhaar number is visible (cover or crop it). Continue?',
+          t('capture.thisServerCannotScanThe'),
         );
         if (ok) {
           setLoading(false);
@@ -128,7 +128,7 @@ export default function PhotoCapturePage() {
         }
       } else {
         // Never invent a reading: tell the user and offer manual entry instead.
-        setErrorMsg('This photo could not be read right now. You can type the values from the slip instead.');
+        setErrorMsg(t('capture.thisPhotoCouldNotBe'));
       }
     } finally {
       setLoading(false);
@@ -148,7 +148,7 @@ export default function PhotoCapturePage() {
       await api.ai.rejectDraft(draft.id).catch(() => {});
       await readPhoto(uploadedPhotoId, true);
     } catch {
-      setErrorMsg('The AI service could not read this photo. Please check the values yourself.');
+      setErrorMsg(t('capture.theAiServiceCouldNot'));
     } finally {
       setLoading(false);
     }
@@ -190,20 +190,21 @@ export default function PhotoCapturePage() {
               <ArrowLeft className="w-4 h-4" />
             </button>
             <h2 className="text-base font-bold text-stone-900 dark:text-stone-100">
-              Read Receipt or Slip Photo
+              
+              {t('capture.readReceiptOrSlipPhoto')}
             </h2>
           </div>
           <ListenButton
-            text="Take a photo of your receipt or slip. The app extracts the date and quantity and presents an editable draft for your confirmation."
-            label="Listen"
+            text={t('capture.takeAPhotoOfYour')}
+            label={t('actions.listen')}
           />
         </div>
 
         {showCloudOffer && (
           <div className="p-3 bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded text-xs flex items-center justify-between gap-3">
-            <span>Some values were hard to read on this device.</span>
+            <span>{t('capture.someValuesWereHardTo')}</span>
             <button type="button" onClick={handleTryCloud} disabled={loading} className="px-3 py-1.5 bg-teal-700 text-white rounded font-medium shrink-0">
-              {loading ? 'Reading…' : 'Try reading with AI'}
+              {loading ? t('capture.reading') : t('capture.tryReadingWithAi')}
             </button>
           </div>
         )}
@@ -227,11 +228,12 @@ export default function PhotoCapturePage() {
             {pending.length > 0 && (
               <div className="space-y-2">
                 <span className="text-xs font-bold text-stone-800 dark:text-stone-200 block">
-                  Waiting to be read ({pending.length})
+                  
+                  {t('capture.waitingHeading', { n: pending.length })}
                 </span>
                 {pending.map((p) => (
                   <div key={p.id} className="flex items-center justify-between gap-2 p-2 rounded border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 text-xs">
-                    <span>Photo taken {new Date(p.createdAt).toLocaleString()}</span>
+                    <span>{t('capture.photoTaken')}{' '}{new Date(p.createdAt).toLocaleString()}</span>
                     <div className="flex gap-2 shrink-0">
                       <button
                         type="button"
@@ -239,7 +241,8 @@ export default function PhotoCapturePage() {
                         onClick={() => processBlob(p.blob, { pendingId: p.id })}
                         className="px-2.5 py-1 bg-teal-700 disabled:opacity-50 text-white rounded font-medium"
                       >
-                        Read now
+                        
+                        {t('capture.readNow')}
                       </button>
                       <button
                         type="button"
@@ -249,7 +252,8 @@ export default function PhotoCapturePage() {
                         }}
                         className="px-2.5 py-1 border border-stone-300 dark:border-stone-700 rounded"
                       >
-                        Delete
+                        
+                        {t('actions.delete')}
                       </button>
                     </div>
                   </div>
@@ -264,11 +268,11 @@ export default function PhotoCapturePage() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={previewUrl}
-                    alt="Receipt preview"
+                    alt={t('capture.receiptPreview')}
                     className="max-h-60 mx-auto rounded border border-stone-300 object-contain shadow-xs"
                   />
                   <p className="text-xs text-stone-500 font-mono">
-                    {photoFile?.name} ({(photoFile?.size! / 1024).toFixed(1)} KB)
+                    {t('capture.fileSize', { name: photoFile?.name ?? '', kb: ((photoFile?.size ?? 0) / 1024).toFixed(1) })}
                   </p>
                 </div>
               ) : (
@@ -277,7 +281,8 @@ export default function PhotoCapturePage() {
                     <Camera className="w-6 h-6" />
                   </div>
                   <p className="text-xs text-stone-600 dark:text-stone-400 font-medium">
-                    Take a clear photo of your monthly ration slip or e-PoS printout
+                    
+                    {t('capture.takeAClearPhotoOf')}
                   </p>
                 </div>
               )}
@@ -285,7 +290,7 @@ export default function PhotoCapturePage() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                 <label className="w-full sm:w-auto px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white font-medium text-xs rounded shadow-xs cursor-pointer flex items-center justify-center gap-1.5 transition-colors">
                   <Camera className="w-4 h-4" />
-                  <span>{previewUrl ? 'Change photo' : 'Take Photo / Upload'}</span>
+                  <span>{previewUrl ? t('capture.changePhoto') : t('capture.takePhotoUpload')}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -300,12 +305,13 @@ export default function PhotoCapturePage() {
             {/* Framing Tips */}
             <div className="bg-stone-100 dark:bg-stone-950 p-3.5 rounded border border-stone-200 dark:border-stone-800 text-xs text-stone-600 dark:text-stone-400 space-y-1">
               <span className="font-bold text-stone-800 dark:text-stone-200 block">
-                Tips for accurate reading:
+                
+                {t('capture.tipsForAccurateReading')}
               </span>
               <ul className="list-disc list-inside space-y-0.5 text-[11px]">
-                <li>Place slip flat on a desk in good lighting</li>
-                <li>Make sure the numbers and date are sharp</li>
-                <li>Cover or fold away Aadhaar numbers if visible</li>
+                <li>{t('capture.placeSlipFlatOnA')}</li>
+                <li>{t('capture.makeSureTheNumbersAnd')}</li>
+                <li>{t('capture.coverOrFoldAwayAadhaar')}</li>
               </ul>
             </div>
 
@@ -321,7 +327,8 @@ export default function PhotoCapturePage() {
                   onClick={() => router.push(`/check/${checkId}/record/new`)}
                   className="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white rounded font-medium"
                 >
-                  Type the values instead
+                  
+                  {t('capture.typeTheValuesInstead')}
                 </button>
               </div>
             )}
@@ -351,10 +358,10 @@ export default function PhotoCapturePage() {
                 {loading ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Reading receipt...</span>
+                    <span>{t('capture.readingReceipt')}</span>
                   </>
                 ) : (
-                  <span>Extract Receipt Information</span>
+                  <span>{t('capture.extractReceiptInformation')}</span>
                 )}
               </button>
             )}

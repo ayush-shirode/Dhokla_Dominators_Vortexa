@@ -1,5 +1,6 @@
 'use client';
 
+import { useApp } from '@/context/AppContext';
 import React, { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { InstallApp } from '@/components/InstallApp';
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react';
 
 export default function HomePage() {
+  const { t } = useApp();
   const router = useRouter();
   const [households, setHouseholds] = useState<LocalHousehold[]>([]);
   const [checks, setChecks] = useState<LocalCheck[]>([]);
@@ -101,13 +103,14 @@ export default function HomePage() {
           <div className="p-3.5 bg-[#edf7f2] border border-[#bbf7d0] text-[#166534] rounded-2xl text-xs font-bold flex items-center justify-between shadow-2xs">
             <div className="flex items-center gap-2">
               <Check className="w-4 h-4 shrink-0" />
-              <span>Rule confirmed! You can now check monthly ledgers.</span>
+              <span>{t('home.ruleConfirmedYouCanNow')}</span>
             </div>
             <button
               onClick={() => setShowConfirmedNotice(false)}
               className="text-[#166534] hover:underline"
             >
-              Dismiss
+              
+              {t('home.dismiss')}
             </button>
           </div>
         )}
@@ -121,10 +124,12 @@ export default function HomePage() {
 
             <div className="space-y-2">
               <h2 className="text-xl font-extrabold text-[#1c3d2e] dark:text-stone-100">
-                Welcome to RationSaathi
+                
+                {t('home.welcomeToRationsaathi')}
               </h2>
               <p className="text-xs text-stone-500 leading-relaxed max-w-xs mx-auto">
-                Check your statutory monthly grain entitlement against actual shop distributions with plain arithmetic.
+                
+                {t('home.checkYourStatutoryMonthlyGrain')}
               </p>
             </div>
 
@@ -133,7 +138,7 @@ export default function HomePage() {
               className="w-full min-h-[56px] py-4 px-6 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-extrabold text-sm rounded-2xl shadow-warm-md flex items-center justify-center gap-2 transition-all active:scale-98 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
             >
               <PlusCircle className="w-5 h-5" />
-              <span>Set up your ration card</span>
+              <span>{t('home.setUpYourRationCard')}</span>
             </Link>
 
             <div className="pt-2">
@@ -143,7 +148,7 @@ export default function HomePage() {
                 className="min-h-[44px] text-xs font-bold text-[#c07b17] hover:underline inline-flex items-center gap-1.5 focus:outline-none"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Or try with example data</span>
+                <span>{t('home.orTryWithExampleData')}</span>
               </button>
             </div>
           </div>
@@ -155,9 +160,9 @@ export default function HomePage() {
             <div className="bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-3xl p-5 shadow-warm space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-bold text-stone-500">Namaste,</span>
+                  <span className="text-xs font-bold text-stone-500">{t('home.namaste')}</span>
                   <h2 className="text-lg font-extrabold text-[#1c3d2e] dark:text-stone-100">
-                    {primaryHh.label || 'Ration Beneficiary'}
+                    {primaryHh.label || t('home.rationBeneficiary')}
                   </h2>
                 </div>
                 <div className="w-10 h-10 rounded-2xl bg-[#edf7f2] dark:bg-stone-800 text-[#244b38] dark:text-emerald-400 flex items-center justify-center font-bold text-lg shadow-2xs">
@@ -169,13 +174,13 @@ export default function HomePage() {
               <div className="bg-[#f7f5ed] dark:bg-stone-950 border border-[#e5decb] dark:border-stone-800 rounded-2xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-stone-500 block">Ration Card</span>
+                    <span className="text-[10px] uppercase font-bold text-stone-500 block">{t('home.rationCard')}</span>
                     <span className="font-mono text-xs font-bold text-stone-800 dark:text-stone-200">
-                      {primaryHh.rationCardNo ? `•••• •••• ${primaryHh.rationCardNo.slice(-4)}` : 'Saved locally'}
+                      {primaryHh.rationCardNo ? `•••• •••• ${primaryHh.rationCardNo.slice(-4)}` : t('home.savedLocally')}
                     </span>
                   </div>
                   <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-[#244b38]/10 text-[#244b38] border border-[#244b38]/20">
-                    {primaryHh.cardType} &bull; {primaryHh.members} members
+                    {primaryHh.cardType} {' '}{t('common.x')}{' '}{primaryHh.members} {' '}{t('common.members')}
                   </span>
                 </div>
 
@@ -183,7 +188,7 @@ export default function HomePage() {
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#244b38] dark:text-emerald-400">
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>Confirmed Entitlement</span>
+                      <span>{t('home.confirmedEntitlement')}</span>
                     </div>
                     <div className="font-mono text-sm font-extrabold text-stone-900 dark:text-stone-100">
                       {computeEntitlement(primaryHh).formula}
@@ -193,7 +198,8 @@ export default function HomePage() {
                     href={`/household/${primaryHh.id}/edit`}
                     className="min-h-[44px] flex items-center text-xs font-bold text-[#244b38] hover:underline focus:outline-none focus:ring-2 focus:ring-[#244b38] rounded-lg px-2"
                   >
-                    Edit &rarr;
+                    
+                    {t('home.edit')}
                   </Link>
                 </div>
               </div>
@@ -204,7 +210,7 @@ export default function HomePage() {
                 className="w-full min-h-[52px] py-4 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-extrabold text-sm rounded-2xl shadow-warm-md flex items-center justify-center gap-2 transition-all active:scale-98 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
               >
                 <Calendar className="w-5 h-5" />
-                <span>Check a month</span>
+                <span>{t('actions.checkMonth')}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -213,16 +219,18 @@ export default function HomePage() {
             <div className="bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-3xl p-5 shadow-warm space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#1c3d2e] dark:text-stone-200">
-                  Monthly Checks History
+                  
+                  {t('home.monthlyChecksHistory')}
                 </h3>
                 <span className="text-[11px] text-stone-500 font-bold">
-                  {checks.length} months
+                  {checks.length} {' '}{t('home.months')}
                 </span>
               </div>
 
               {checks.length === 0 ? (
                 <p className="text-xs text-stone-400 py-3 text-center italic">
-                  No monthly checks logged yet. Tap &ldquo;Check a month&rdquo; above to begin.
+                  
+                  {t('home.noMonthlyChecksLoggedYet')}
                 </p>
               ) : (
                 <div className="divide-y divide-[#eee7db] dark:divide-stone-800">
@@ -243,7 +251,7 @@ export default function HomePage() {
                               {chk.period}
                             </div>
                             <div className="text-[10px] text-stone-500">
-                              {chk.status === 'filed' ? 'Complaint reference recorded' : chk.status === 'reported' ? 'Audit report generated' : 'Ledger open'}
+                              {chk.status === 'filed' ? t('home.complaintReferenceRecorded') : chk.status === 'reported' ? t('home.auditReportGenerated') : t('home.ledgerOpen')}
                             </div>
                           </div>
                         </div>
@@ -258,7 +266,7 @@ export default function HomePage() {
                                 : 'bg-stone-100 text-stone-700 border-stone-200'
                             }`}
                           >
-                            {chk.status === 'filed' ? 'Filed ✓' : chk.status === 'reported' ? 'Report Ready' : 'Open'}
+                            {chk.status === 'filed' ? t('grievance.filed') : chk.status === 'reported' ? t('home.reportReady') : t('home.open')}
                           </span>
                           <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-[#244b38]" />
                         </div>
@@ -270,14 +278,14 @@ export default function HomePage() {
 
             {/* Example Data Banner */}
             <div className="flex items-center justify-between text-xs text-stone-500 px-1 pt-1">
-              <span>Need demonstration records?</span>
+              <span>{t('home.needDemonstrationRecords')}</span>
               {hasExample ? (
                 <button
                   onClick={handleClearExample}
                   className="min-h-[44px] text-amber-800 dark:text-amber-400 font-bold hover:underline flex items-center gap-1 focus:outline-none"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Clear example data</span>
+                  <span>{t('home.clearExampleData')}</span>
                 </button>
               ) : (
                 <button
@@ -285,7 +293,7 @@ export default function HomePage() {
                   className="min-h-[44px] text-[#244b38] dark:text-emerald-400 font-bold hover:underline flex items-center gap-1 focus:outline-none"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Try with example data</span>
+                  <span>{t('common.exampleData')}</span>
                 </button>
               )}
             </div>

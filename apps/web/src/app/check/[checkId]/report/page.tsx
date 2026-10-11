@@ -19,14 +19,13 @@ import {
   buildReportSnapshot,
   renderReportText,
   formatKg,
-  POSSIBLE_CAUSES,
-  DISCLAIMER,
   SUPPORTED_LANGUAGES,
   type LanguageCode,
   type ReportSnapshot,
 } from '@repo/shared';
 import { api, flushOutbox } from '@/lib/api';
 import { TranslatePanel } from '@/components/TranslatePanel';
+import { Arithmetic } from '@/components/Arithmetic';
 import type { LocalCheck, LocalHousehold, LocalRecord } from '@/lib/localTypes';
 import {
   FileText,
@@ -37,7 +36,7 @@ import {
 export default function ReportPage() {
   const router = useRouter();
   const checkId = useCheckId();
-  const { lang, speak } = useApp();
+  const { lang, speak, t } = useApp();
 
   const [check, setCheck] = useState<LocalCheck | null>(null);
   const [household, setHousehold] = useState<LocalHousehold | null>(null);
@@ -49,8 +48,8 @@ export default function ReportPage() {
   const [extraTranslations, setExtraTranslations] = useState<LanguageCode[]>([]);
 
   const templateLang = lang === 'hi' ? 'hi' : 'en';
-  const causes = POSSIBLE_CAUSES[templateLang];
-  const disclaimer = DISCLAIMER[templateLang];
+  const causes = [1, 2, 3, 4].map((i) => t(`content.cause${i}`));
+  const disclaimer = t('content.disclaimer');
 
   useEffect(() => {
     getLocalCheck(checkId).then((chk) => {
@@ -82,7 +81,8 @@ export default function ReportPage() {
   if (!check || !household || !snapshot) {
     return (
       <div className="min-h-screen bg-[#fbf9f4] dark:bg-[#141716] flex items-center justify-center text-xs font-mono">
-        Loading audit report preview...
+        
+        {t('report.loadingAuditReportPreview')}
       </div>
     );
   }
@@ -96,16 +96,19 @@ export default function ReportPage() {
           <div className="bg-[#fffbeb] border border-[#fde68a] rounded-3xl p-6 text-center space-y-4">
             <ShieldAlert className="w-8 h-8 text-amber-600 mx-auto" />
             <h2 className="text-base font-extrabold text-amber-900">
-              Confirm the rule before generating report
+              
+              {t('report.confirmTheRuleBeforeGenerating')}
             </h2>
             <p className="text-xs text-amber-800 leading-relaxed">
-              An audit report requires your statutory entitlement rule to be explicitly confirmed.
+              
+              {t('report.anAuditReportRequiresYour')}
             </p>
             <Link
               href={`/household/${household.id}/edit`}
               className="inline-block px-5 py-3 bg-[#244b38] text-white text-xs font-extrabold rounded-2xl shadow-warm"
             >
-              Confirm Rule Now &rarr;
+              
+              {t('report.confirmRuleNow')}
             </Link>
           </div>
         </main>
@@ -138,10 +141,10 @@ export default function ReportPage() {
       const code = (err as { code?: string })?.code;
       setOfflineNotice(
         code === 'NEUTRALITY_CHECK_FAILED'
-          ? 'Some notes say who caused a difference. Please edit them to describe only what was received.'
+          ? t('report.someNotesSayWhoCaused')
           : code === 'RULE_NOT_CONFIRMED'
-            ? 'The rule is not confirmed on the server yet. Open the rule, confirm it, and try again.'
-            : 'Saving the official report needs an internet connection. The preview below can still be read aloud and downloaded as text.',
+            ? t('report.theRuleIsNotConfirmed')
+            : t('report.savingTheOfficialReportNeeds'),
       );
     } finally {
       setSaving(false);
@@ -172,7 +175,7 @@ export default function ReportPage() {
       const blob = await api.reports.export(report.id, format, language);
       downloadBlob(blob, `ration-report-${check.period}-v${report.version}-${language}.${format}`);
     } catch {
-      setOfflineNotice('This download needs an internet connection. Use "Download (.txt)" instead.');
+      setOfflineNotice(t('report.thisDownloadNeedsAnInternet'));
     }
   };
 
@@ -193,25 +196,28 @@ export default function ReportPage() {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-extrabold text-[#1c3d2e] dark:text-stone-100">
-                Monthly Audit Report
+                
+                {t('report.monthlyAuditReport')}
               </h2>
               {!savedIsCurrent ? (
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                  {report ? `Changed since v${report.version}` : 'Not yet saved'}
+                  {report ? t('report.changedSince', { v: report.version }) : t('report.notYetSaved')}
                 </span>
               ) : (
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#edf7f2] text-[#166534] border border-[#bbf7d0]">
-                  Saved ✓
+                  
+                  {t('report.saved')}
                 </span>
               )}
             </div>
             <p className="text-[11px] text-stone-500 mt-0.5 font-mono">
-              Period {check.period} &bull; {snapshot.summary.records.length} records analyzed
+              
+              {t('report.periodLine', { period: check.period, n: snapshot.summary.records.length })}
             </p>
           </div>
           <ListenButton
-            text={`Report for ${check.period}. Entitlement ${formatKg(snapshot.summary.entitlement.kg)}. Received and counted ${formatKg(snapshot.summary.totals.countedKg)}. Difference ${formatKg(Math.abs(snapshot.summary.differenceKg))}.`}
-            label="Listen"
+            text={t('report.listenSummary', { period: check.period, entitled: formatKg(snapshot.summary.entitlement.kg), counted: formatKg(snapshot.summary.totals.countedKg), diff: formatKg(Math.abs(snapshot.summary.differenceKg)) })}
+            label={t('actions.listen')}
           />
         </div>
 
@@ -225,7 +231,8 @@ export default function ReportPage() {
         <div className="bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-3xl p-5 shadow-warm space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-extrabold text-stone-800 dark:text-stone-200">
-              Entitlement vs Received
+              
+              {t('report.entitlementVsReceived')}
             </span>
             <span className="font-mono text-xs font-bold text-stone-500">
               {check.period}
@@ -235,20 +242,20 @@ export default function ReportPage() {
           {/* 3 Metric Rows */}
           <div className="space-y-2.5 bg-[#fbf9f4] dark:bg-stone-950 p-4 rounded-2xl border border-[#eee7db] dark:border-stone-800 text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-stone-600 dark:text-stone-400">Entitlement (monthly)</span>
+              <span className="text-stone-600 dark:text-stone-400">{t('report.entitlementMonthly')}</span>
               <span className="font-mono text-sm font-extrabold text-stone-900 dark:text-stone-100">
                 {formatKg(snapshot.summary.entitlement.kg)}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-stone-600 dark:text-stone-400">Received (counted)</span>
+              <span className="text-stone-600 dark:text-stone-400">{t('report.receivedCounted')}</span>
               <span className="font-mono text-sm font-extrabold text-[#166534] dark:text-emerald-400">
                 {formatKg(snapshot.summary.totals.countedKg)}
               </span>
             </div>
             <div className="flex items-center justify-between pt-1.5 border-t border-[#eee7db] dark:border-stone-800 font-extrabold">
               <span className={isShortfall ? 'text-amber-900' : 'text-stone-800'}>
-                {isShortfall ? 'Difference (Shortfall)' : snapshot.summary.status === 'above_entitlement' ? 'Received more than the entitlement' : 'Difference'}
+                {isShortfall ? t('report.differenceShortfall') : snapshot.summary.status === 'above_entitlement' ? t('report.receivedMoreThanTheEntitlement') : t('report.difference')}
               </span>
               <span className={`font-mono text-base ${isShortfall ? 'text-amber-900' : 'text-stone-800'}`}>
                 {formatKg(Math.abs(snapshot.summary.differenceKg))}
@@ -258,8 +265,8 @@ export default function ReportPage() {
 
           {/* Every record with its evidence (Principle 3) */}
           <div className="space-y-2">
-            <span className="text-[10px] uppercase font-extrabold text-stone-400 block">Records and evidence</span>
-            {snapshot.records.length === 0 && <p className="text-xs text-stone-500">No records for this month.</p>}
+            <span className="text-[10px] uppercase font-extrabold text-stone-400 block">{t('report.recordsAndEvidence')}</span>
+            {snapshot.records.length === 0 && <p className="text-xs text-stone-500">{t('report.noRecordsForThisMonth')}</p>}
             {snapshot.records.map((r) => (
               <div key={r.id} className="p-3 rounded-2xl border border-[#eee7db] dark:border-stone-800 text-xs space-y-0.5">
                 <div className="flex items-center justify-between">
@@ -267,11 +274,12 @@ export default function ReportPage() {
                   <span className="font-mono font-extrabold">{formatKg(r.quantityKg)}</span>
                 </div>
                 <p className="text-stone-600 dark:text-stone-400 break-words">
-                  {r.evidenceType === 'none' ? 'No evidence' : `${r.evidenceType.toUpperCase()}${r.evidenceContent ? `: ${r.evidenceContent}` : ''}`}
+                  {r.evidenceType === 'none' ? t('ledger.noEvidence') : `${t('evidence.' + r.evidenceType)}${r.evidenceContent ? `: ${r.evidenceContent}` : ''}`}
                 </p>
                 {!r.counted && (
                   <p className="text-[11px] text-amber-800">
-                    Not counted — {r.exclusionReason === 'unrecorded' ? 'no evidence linked' : 'marked unsure'}
+                    
+                    {t(r.exclusionReason === 'unrecorded' ? 'report.notCountedNoEvidence' : 'report.notCountedUnsure')}
                   </p>
                 )}
               </div>
@@ -281,11 +289,10 @@ export default function ReportPage() {
           {/* Line-by-line arithmetic */}
           <div className="p-3.5 bg-[#fbf9f4] dark:bg-stone-950 rounded-2xl border border-[#eee7db] dark:border-stone-800 font-mono text-[11px] text-stone-700 dark:text-stone-300 space-y-1">
             <span className="text-[10px] uppercase font-sans font-extrabold text-stone-400 block mb-1">
-              Line-by-Line Arithmetic
+              
+              {t('report.lineByLineArithmetic')}
             </span>
-            {snapshot.summary.arithmetic.map((line: string, idx: number) => (
-              <div key={idx}>{line}</div>
-            ))}
+            <Arithmetic summary={snapshot.summary} />
           </div>
 
           {/* Possible causes & Disclaimer on shortfall */}
@@ -293,9 +300,10 @@ export default function ReportPage() {
             <div className="p-4 bg-[#fbf9f4] dark:bg-stone-950 rounded-2xl border border-[#eee7db] dark:border-stone-800 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-stone-700 dark:text-stone-300">
-                  Possible Explanations
+                  
+                  {t('common.possibleExplanations')}
                 </span>
-                <ListenButton text={causes.join('. ') + '. ' + disclaimer} label="Listen" />
+                <ListenButton text={causes.join('. ') + '. ' + disclaimer} label={t('actions.listen')} />
               </div>
               <ul className="list-disc list-inside text-xs text-stone-600 dark:text-stone-400 space-y-1">
                 {causes.map((c: string, i: number) => (
@@ -312,7 +320,8 @@ export default function ReportPage() {
           <div className="pt-2 flex flex-col gap-2">
             {savedIsCurrent && report && (
               <p className="text-[11px] text-stone-500 font-mono break-all">
-                Official report v{report.version} · hash {report.contentHash.slice(0, 12)}…
+                
+                {t('report.officialVersion', { v: report.version, hash: report.contentHash.slice(0, 12) })}
               </p>
             )}
             {!savedIsCurrent && (
@@ -323,7 +332,7 @@ export default function ReportPage() {
                 className="w-full min-h-[48px] py-3.5 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-extrabold text-xs rounded-2xl shadow-warm flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50"
               >
                 <FileText className="w-4 h-4" />
-                <span>{saving ? 'Saving…' : report ? 'Save new version' : 'Save This Report'}</span>
+                <span>{saving ? t('report.saving') : report ? t('report.saveNewVersion') : t('report.saveThisReport')}</span>
               </button>
             )}
             <div className="grid grid-cols-2 gap-2">
@@ -333,7 +342,7 @@ export default function ReportPage() {
                 className="min-h-[48px] py-3 px-3 bg-[#fbf9f4] hover:bg-[#f3eee3] border border-[#eee7db] text-[#1c3d2e] font-extrabold text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-colors"
               >
                 <Download className="w-4 h-4 text-[#244b38]" />
-                <span>Download (.txt)</span>
+                <span>{t('report.downloadTxt')}</span>
               </button>
               {savedIsCurrent ? (
                 <button
@@ -342,7 +351,7 @@ export default function ReportPage() {
                   className="min-h-[48px] py-3 px-3 bg-[#fbf9f4] hover:bg-[#f3eee3] border border-[#eee7db] text-[#1c3d2e] font-extrabold text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-colors"
                 >
                   <Download className="w-4 h-4 text-[#244b38]" />
-                  <span>Download PDF</span>
+                  <span>{t('report.downloadPdf')}</span>
                 </button>
               ) : (
                 <span />
@@ -353,7 +362,7 @@ export default function ReportPage() {
                 href={`/check/${checkId}/grievance`}
                 className="min-h-[48px] py-3 px-3 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-extrabold text-xs rounded-2xl shadow-warm flex items-center justify-center gap-1.5 transition-all text-center"
               >
-                <span>Proceed to Grievance &rarr;</span>
+                <span>{t('report.proceedToGrievance')}</span>
               </Link>
             )}
           </div>
@@ -364,13 +373,13 @@ export default function ReportPage() {
             <TranslatePanel purpose="report" reportId={report.id} onApplied={(_, l) => setExtraTranslations((p) => [...p, l])} />
             {translatedLangs.length > 0 && (
               <div className="text-xs bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-2xl p-3 space-y-1.5">
-                <span className="font-extrabold block">Confirmed translations</span>
+                <span className="font-extrabold block">{t('report.confirmedTranslations')}</span>
                 {translatedLangs.map((l) => (
                   <div key={l} className="flex items-center justify-between gap-2">
                     <span>{SUPPORTED_LANGUAGES.find((x) => x.code === l)?.nativeName ?? l}</span>
                     <span className="flex gap-3">
-                      <button type="button" onClick={() => handleExport('html', l)} className="underline">Printable page</button>
-                      <button type="button" onClick={() => handleExport('txt', l)} className="underline">Text</button>
+                      <button type="button" onClick={() => handleExport('html', l)} className="underline">{t('report.printablePage')}</button>
+                      <button type="button" onClick={() => handleExport('txt', l)} className="underline">{t('report.text')}</button>
                     </span>
                   </div>
                 ))}

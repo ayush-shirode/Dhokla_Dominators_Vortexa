@@ -1,5 +1,6 @@
 'use client';
 
+import { useApp } from '@/context/AppContext';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -29,6 +30,7 @@ import {
 } from 'lucide-react';
 
 export default function CheckLedgerPage() {
+  const { t } = useApp();
   const router = useRouter();
   const checkId = useCheckId();
 
@@ -80,7 +82,7 @@ export default function CheckLedgerPage() {
   }, [checkId]);
 
   const handleDeleteRecord = async (recordId: string) => {
-    if (window.confirm('Delete this record? This cannot be undone.')) {
+    if (window.confirm(t('ledger.deleteThisRecordThisCannot'))) {
       await deleteLocalRecord(recordId);
       await loadData();
     }
@@ -89,7 +91,8 @@ export default function CheckLedgerPage() {
   if (loading || !check || !household) {
     return (
       <div className="min-h-screen bg-[#fbf9f4] dark:bg-[#141716] flex items-center justify-center text-xs font-mono">
-        Loading monthly ledger...
+        
+        {t('ledger.loadingMonthlyLedger')}
       </div>
     );
   }
@@ -127,7 +130,7 @@ export default function CheckLedgerPage() {
             href={`/check/${checkId}/capture`}
             className="block p-3 rounded-xl border border-[#bbf7d0] bg-[#edf7f2] text-xs text-[#166534]"
           >
-            {pendingPhotoCount} photo{pendingPhotoCount === 1 ? '' : 's'} saved offline {pendingPhotoCount === 1 ? 'is' : 'are'} waiting to be read. Tap to read {pendingPhotoCount === 1 ? 'it' : 'them'} now →
+            {t(pendingPhotoCount === 1 ? 'ledger.pendingPhotosOne' : 'ledger.pendingPhotos', { n: pendingPhotoCount })}
           </Link>
         )}
 
@@ -139,16 +142,17 @@ export default function CheckLedgerPage() {
                 {check.period}
               </span>
               <h2 className="text-base font-extrabold text-[#1c3d2e] dark:text-stone-100">
-                Monthly Records Ledger
+                
+                {t('ledger.monthlyRecordsLedger')}
               </h2>
             </div>
             <p className="text-[11px] text-stone-500 mt-0.5">
-              {household.label} &bull; {household.members} members
+              {household.label} {' '}{t('common.x')}{' '}{household.members} {' '}{t('common.members')}
             </p>
           </div>
           <ListenButton
-            text={`Ledger for ${check.period}. ${records.length} records logged.`}
-            label="Listen"
+            text={t('ledger.listenSummary', { period: check.period, n: records.length })}
+            label={t('actions.listen')}
           />
         </div>
 
@@ -159,10 +163,12 @@ export default function CheckLedgerPage() {
               <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <h3 className="text-xs font-extrabold uppercase tracking-wide text-amber-900 dark:text-amber-200">
-                  Confirm the rule before we can compare
+                  
+                  {t('ledger.confirmTheRuleBeforeWe')}
                 </h3>
                 <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                  The law requires your entitlement rule to be explicitly confirmed before any comparison or shortfall can be shown.
+                  
+                  {t('ledger.theLawRequiresYourEntitlement')}
                 </p>
               </div>
             </div>
@@ -171,7 +177,7 @@ export default function CheckLedgerPage() {
               href={`/household/${household.id}/edit`}
               className="w-full min-h-[48px] py-3 px-4 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-extrabold text-xs rounded-2xl shadow-warm flex items-center justify-center gap-2 transition-all active:scale-98 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
             >
-              <span>View Rule Card &bull; Tap &ldquo;Use this rule&rdquo;</span>
+              <span>{t('ledger.viewRuleCardTapUse')}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -187,7 +193,7 @@ export default function CheckLedgerPage() {
             className="min-h-[48px] py-3 px-4 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-extrabold text-xs rounded-2xl shadow-warm flex items-center justify-center gap-2 transition-all active:scale-98 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Record</span>
+            <span>{t('ledger.addRecord')}</span>
           </Link>
 
           {isRuleConfirmed ? (
@@ -196,16 +202,16 @@ export default function CheckLedgerPage() {
               className="min-h-[48px] py-3 px-4 bg-white dark:bg-stone-900 border border-[#244b38] text-[#244b38] dark:text-emerald-400 hover:bg-[#edf7f2] font-extrabold text-xs rounded-2xl shadow-2xs flex items-center justify-center gap-2 transition-all active:scale-98 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
             >
               <FileText className="w-4 h-4" />
-              <span>Make Report &rarr;</span>
+              <span>{t('ledger.makeReport2')}</span>
             </Link>
           ) : (
             <button
               disabled
-              title="Confirm the rule to unlock reports"
+              title={t('ledger.confirmTheRuleToUnlock')}
               className="min-h-[48px] py-3 px-4 bg-stone-100 text-stone-400 border border-stone-200 rounded-2xl text-xs font-bold cursor-not-allowed flex items-center justify-center gap-1.5"
             >
               <Lock className="w-4 h-4" />
-              <span>Make Report</span>
+              <span>{t('ledger.makeReport')}</span>
             </button>
           )}
         </div>
@@ -214,7 +220,8 @@ export default function CheckLedgerPage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#1c3d2e] dark:text-stone-200">
-              Distribution Slips &amp; Entries ({records.length})
+              
+              {t('ledger.recordsHeading', { n: records.length })}
             </h3>
           </div>
 
@@ -241,8 +248,8 @@ export default function CheckLedgerPage() {
           <div className="bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-3xl p-8 text-center space-y-3">
             <p className="text-xs text-stone-500 italic">
               {records.length === 0
-                ? 'No ration records logged for this month yet.'
-                : `No records matching the "${filter}" filter.`}
+                ? t('ledger.noRationRecordsLoggedFor')
+                : t('ledger.noRecordsFilter')}
             </p>
             {records.length === 0 && (
               <Link
@@ -250,7 +257,7 @@ export default function CheckLedgerPage() {
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#244b38] text-white text-xs font-extrabold rounded-xl"
               >
                 <Plus className="w-4 h-4" />
-                <span>Add your first distribution record</span>
+                <span>{t('ledger.addYourFirstDistributionRecord')}</span>
               </Link>
             )}
           </div>
@@ -283,7 +290,8 @@ export default function CheckLedgerPage() {
                       ))}
                       {assessed?.counted && (
                         <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#edf7f2] text-[#166534] border border-[#bbf7d0]">
-                          Counted
+                          
+                          {t('common.counted')}
                         </span>
                       )}
                     </div>
@@ -292,16 +300,17 @@ export default function CheckLedgerPage() {
                   <div className="py-3 flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold capitalize text-stone-800 dark:text-stone-200 block">
-                        {r.commodity ? r.commodity.replace('_', ' ') : 'Mixed commodities'}
+                        {r.commodity ? r.commodity.replace('_', ' ') : t('ledger.mixedCommodities')}
                       </span>
                       <span className="text-[11px] text-stone-500 font-medium">
-                        Evidence: {r.evidenceType === 'receipt' ? 'Receipt / Slip' : r.evidenceType === 'sms' ? 'SMS Text' : r.evidenceType === 'note' ? 'Visit Note' : 'No evidence'}
+                        
+                        {t('ledger.evidence')}{' '}{r.evidenceType === 'receipt' ? t('ledger.receiptSlip') : r.evidenceType === 'sms' ? t('ledger.smsText') : r.evidenceType === 'note' ? t('ledger.visitNote') : t('ledger.noEvidence')}
                       </span>
                     </div>
 
                     <div className="text-right">
                       <div className="font-mono text-2xl font-extrabold text-[#1c3d2e] dark:text-stone-100">
-                        {r.quantityKg} <span className="text-xs font-sans text-stone-500">kg</span>
+                        {r.quantityKg} <span className="text-xs font-sans text-stone-500">{t('common.kg')}</span>
                       </div>
                     </div>
                   </div>
@@ -318,7 +327,7 @@ export default function CheckLedgerPage() {
                       className="min-h-[44px] px-3 py-1 text-xs text-stone-600 hover:text-[#244b38] font-bold inline-flex items-center gap-1 focus:outline-none"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
-                      <span>Edit</span>
+                      <span>{t('actions.edit')}</span>
                     </Link>
 
                     <button
@@ -327,7 +336,7 @@ export default function CheckLedgerPage() {
                       className="min-h-[44px] px-3 py-1 text-xs text-rose-600 hover:text-rose-800 font-bold inline-flex items-center gap-1 focus:outline-none"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>Delete</span>
+                      <span>{t('actions.delete')}</span>
                     </button>
                   </div>
                 </div>

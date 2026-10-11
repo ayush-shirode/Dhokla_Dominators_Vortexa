@@ -1,5 +1,6 @@
 'use client';
 
+import { useApp } from '@/context/AppContext';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -21,9 +22,10 @@ import {
   Mic,
   PenTool,
 } from 'lucide-react';
-import { NEUTRALITY_HINT, flaggedTermsText } from '@/lib/neutrality';
+import { flaggedTermsText } from '@/lib/neutrality';
 
 export default function RecordFormPage() {
+  const { t } = useApp();
   const router = useRouter();
   const checkId = useCheckId();
   const recordSeg = usePathSegment(4);
@@ -72,7 +74,7 @@ export default function RecordFormPage() {
     setEvidenceContent(text);
     const n = checkNeutrality(text);
     if (!n.ok) {
-      setNeutralityWarning(`${NEUTRALITY_HINT} (flagged: ${flaggedTermsText(n)})`);
+      setNeutralityWarning(t('common.neutralityHint', { words: flaggedTermsText(n) }));
     } else {
       setNeutralityWarning(null);
     }
@@ -86,13 +88,13 @@ export default function RecordFormPage() {
 
     const n = checkNeutrality(evidenceContent);
     if (!n.ok) {
-      setNeutralityWarning(NEUTRALITY_HINT);
+      setNeutralityWarning(t('common.neutralityHintPlain'));
       return;
     }
 
     const { text: cleanContent, count } = redactSensitiveIds(evidenceContent);
     if (count > 0) {
-      setRedactedNote(`We removed ${count} number(s) that looked like an Aadhaar number.`);
+      setRedactedNote(t('common.idRemoved', { n: count }));
     }
 
     setSaving(true);
@@ -129,29 +131,30 @@ export default function RecordFormPage() {
             <button
               onClick={() => router.back()}
               className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#244b38]"
-              title="Go back"
+              title={t('common.goBack')}
             >
               <ArrowLeft className="w-5 h-5 text-stone-700 dark:text-stone-300" />
             </button>
             <h2 className="text-base font-extrabold text-[#1c3d2e] dark:text-stone-100">
-              {recordId ? 'Edit Ration Record' : 'Add Ration Record'}
+              {recordId ? t('record.editRationRecord') : t('record.addRationRecord')}
             </h2>
           </div>
           <ListenButton
-            text="Add record. Choose method: Type, Photo, Paste, or Voice. Enter date and quantity."
-            label="Listen"
+            text={t('record.addRecordChooseMethodType')}
+            label={t('actions.listen')}
           />
         </div>
 
         {/* Method Chooser: Type, Photo, Paste, Voice */}
         <div className="bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-3xl p-4 shadow-warm space-y-2">
           <span className="text-[11px] font-extrabold uppercase tracking-wider text-stone-600 block">
-            Choose Entry Method
+            
+            {t('record.chooseEntryMethod')}
           </span>
           <div className="grid grid-cols-4 gap-2">
             <span className="min-h-[48px] py-2 px-1 text-center text-xs font-extrabold rounded-2xl bg-[#244b38] text-white shadow-xs flex flex-col items-center justify-center gap-1">
               <PenTool className="w-4 h-4" />
-              <span>Type</span>
+              <span>{t('record.type')}</span>
             </span>
 
             <Link
@@ -159,7 +162,7 @@ export default function RecordFormPage() {
               className="min-h-[48px] py-2 px-1 text-center text-xs font-bold rounded-2xl bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] text-stone-700 hover:bg-[#f3eee3] flex flex-col items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
             >
               <Camera className="w-4 h-4 text-[#244b38]" />
-              <span>Photo</span>
+              <span>{t('record.photo')}</span>
             </Link>
 
             <Link
@@ -167,7 +170,7 @@ export default function RecordFormPage() {
               className="min-h-[48px] py-2 px-1 text-center text-xs font-bold rounded-2xl bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] text-stone-700 hover:bg-[#f3eee3] flex flex-col items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
             >
               <ClipboardPaste className="w-4 h-4 text-[#244b38]" />
-              <span>Paste</span>
+              <span>{t('record.paste')}</span>
             </Link>
 
             <Link
@@ -175,7 +178,7 @@ export default function RecordFormPage() {
               className="min-h-[48px] py-2 px-1 text-center text-xs font-bold rounded-2xl bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] text-stone-700 hover:bg-[#f3eee3] flex flex-col items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
             >
               <Mic className="w-4 h-4 text-[#244b38]" />
-              <span>Voice</span>
+              <span>{t('record.voice')}</span>
             </Link>
           </div>
         </div>
@@ -185,7 +188,8 @@ export default function RecordFormPage() {
           {/* Date of Receipt */}
           <div>
             <label className="text-xs font-extrabold text-stone-700 dark:text-stone-300 block mb-1">
-              Date of receipt *
+              
+              {t('record.dateOfReceipt')}
             </label>
             <input
               type="date"
@@ -197,7 +201,8 @@ export default function RecordFormPage() {
             />
             {isOutsidePeriod && (
               <p className="text-[11px] text-amber-800 dark:text-amber-400 mt-1 font-bold">
-                Note: This date falls outside period {period}. It will be marked Late (still counted).
+                
+                {t('record.outsidePeriod', { period })}
               </p>
             )}
           </div>
@@ -205,7 +210,8 @@ export default function RecordFormPage() {
           {/* Items Received Chips */}
           <div>
             <label className="text-xs font-extrabold text-stone-700 dark:text-stone-300 block mb-1.5">
-              Items received (commodity)
+              
+              {t('record.itemsReceivedCommodity')}
             </label>
             <div className="flex flex-wrap gap-2">
               {(['rice', 'wheat', 'coarse_grains', 'mixed', 'other'] as const).map((c) => (
@@ -228,7 +234,8 @@ export default function RecordFormPage() {
           {/* Quantity in kg with >= 28px font */}
           <div>
             <label className="text-xs font-extrabold text-stone-700 dark:text-stone-300 block mb-1">
-              Quantity (kg/L) *
+              
+              {t('record.quantityKgL')}
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -241,21 +248,22 @@ export default function RecordFormPage() {
                 className="w-full min-h-[52px] px-3.5 py-2 text-2xl sm:text-3xl font-mono font-extrabold bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] dark:border-stone-700 rounded-xl text-[#1c3d2e] dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
                 required
               />
-              <span className="text-sm font-bold text-stone-500">kg</span>
+              <span className="text-sm font-bold text-stone-500">{t('common.kg')}</span>
             </div>
           </div>
 
           {/* Evidence Type Tiles: receipt number, SMS text, photo, note, no evidence */}
           <div>
             <label className="text-xs font-extrabold text-stone-700 dark:text-stone-300 block mb-1.5">
-              Evidence Type (Principle P3) *
+              
+              {t('record.evidenceTypePrincipleP3')}
             </label>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { type: 'receipt', label: 'Receipt / Slip No.' },
-                { type: 'sms', label: 'SMS text message' },
-                { type: 'note', label: 'Visit Note' },
-                { type: 'none', label: 'No evidence (Unrecorded)' },
+                { type: 'receipt', label: t('record.receiptSlipNo') },
+                { type: 'sms', label: t('record.smsTextMessage') },
+                { type: 'note', label: t('ledger.visitNote') },
+                { type: 'none', label: t('record.noEvidenceUnrecorded') },
               ].map((ev) => (
                 <button
                   key={ev.type}
@@ -277,13 +285,14 @@ export default function RecordFormPage() {
           {evidenceType === 'receipt' && (
             <div>
               <label className="text-xs font-extrabold text-stone-700 dark:text-stone-300 block mb-1">
-                Receipt / Transaction Number
+                
+                {t('record.receiptTransactionNumber')}
               </label>
               <input
                 type="text"
                 value={evidenceContent}
                 onChange={(e) => handleContentChange(e.target.value)}
-                placeholder="e.g. TXN-89213"
+                placeholder={t('record.eGTxn89213')}
                 className="w-full min-h-[44px] px-3.5 py-2 text-xs bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] rounded-xl font-mono focus:outline-none focus:ring-2 focus:ring-[#244b38]"
                 required
               />
@@ -293,7 +302,7 @@ export default function RecordFormPage() {
           {(evidenceType === 'sms' || evidenceType === 'note') && (
             <div>
               <label className="text-xs font-extrabold text-stone-700 dark:text-stone-300 block mb-1">
-                {evidenceType === 'sms' ? 'SMS Message' : 'Visit Note'}
+                {evidenceType === 'sms' ? t('record.smsMessage') : t('ledger.visitNote')}
               </label>
               <textarea
                 value={evidenceContent}
@@ -301,8 +310,8 @@ export default function RecordFormPage() {
                 rows={3}
                 placeholder={
                   evidenceType === 'sms'
-                    ? 'Paste the official delivery SMS here'
-                    : 'What happened at this distribution visit?'
+                    ? t('record.pasteTheOfficialDeliverySms')
+                    : t('record.whatHappenedAtThisDistribution')
                 }
                 className="w-full px-3.5 py-2 text-xs bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] rounded-xl focus:ring-2 focus:ring-[#244b38] focus:outline-none"
                 required
@@ -317,8 +326,9 @@ export default function RecordFormPage() {
 
           {evidenceType === 'none' && (
             <div className="p-3 bg-[#f7f5ed] rounded-xl border border-[#e5decb] text-xs text-stone-700">
-              <span className="font-bold block mb-0.5">Note:</span>
-              This record will be saved as <strong className="text-stone-900">Unrecorded</strong> and will not be counted in confirmed totals until slip evidence is linked.
+              <span className="font-bold block mb-0.5">{t('common.note')}</span>
+              
+              {t('record.savedAsUnrecorded')}
             </div>
           )}
 
@@ -337,7 +347,7 @@ export default function RecordFormPage() {
                 onChange={(e) => setUnclear(e.target.checked)}
                 className="w-4 h-4 mt-0.5 rounded text-[#244b38] focus:ring-[#244b38]"
               />
-              <span>I am not sure about this amount (mark as <strong>Unclear</strong> &mdash; not counted in totals)</span>
+              <span>{t('record.markUnsure')}</span>
             </label>
           </div>
 
@@ -349,7 +359,7 @@ export default function RecordFormPage() {
               className="w-full min-h-[48px] py-3.5 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-extrabold text-xs rounded-2xl shadow-warm flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
             >
               <Check className="w-4 h-4" />
-              <span>Confirm &amp; Save Record</span>
+              <span>{t('record.confirmSaveRecord')}</span>
             </button>
           </div>
         </form>

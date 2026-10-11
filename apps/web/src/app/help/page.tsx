@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header, BottomNav, ListenButton } from '@/components/Navigation';
-import { FAQ, CAUSE_REDIRECT, isCauseQuestion, matchFaq, checkNeutrality } from '@repo/shared';
+import { isCauseQuestion, matchFaq, checkNeutrality } from '@repo/shared';
 import { api } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
 import { Send, Volume2, ArrowLeft, Shield } from 'lucide-react';
@@ -22,19 +22,20 @@ interface ChatMsg {
 
 export function HelpPageContent() {
   const router = useRouter();
-  const { speak, lang, capabilities, aiConsent, setAiConsent } = useApp();
+  const { speak, lang, capabilities, aiConsent, setAiConsent, t } = useApp();
   const [showConsentModal, setShowConsentModal] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       id: 'welcome',
       sender: 'assistant',
-      text: 'Namaste! I am your RationSaathi plain-language assistant. Ask me questions about ration rules, labels like Unrecorded or Unclear, DGRO officers, or filing your grievance.',
+      text: t('help.namasteIAmYourRationsaathi'),
       source: 'faq',
     },
   ]);
   const [input, setInput] = useState('');
 
-  const t = (x: { en: string; hi: string }) => (lang === 'hi' ? x.hi : x.en);
+  /** FAQ text in the UI language (catalog), keyed by the shared FAQ id. */
+  const faqKey = (id: string) => `faq.${id.replace(/-([a-z])/g, (_m, c: string) => c.toUpperCase())}`;
 
   const handleSend = async (textToSend?: string, allowCloudOverride?: boolean) => {
     const q = (textToSend || input).trim();
@@ -51,7 +52,7 @@ export function HelpPageContent() {
 
     // Guardrail: never assign blame or discuss corrupt/scam causes
     if (isCauseQuestion(q) || !checkNeutrality(q).ok) {
-      add(t(CAUSE_REDIRECT), 'guardrail');
+      add(t('content.causeRedirect'), 'guardrail');
       return;
     }
 
@@ -70,12 +71,12 @@ export function HelpPageContent() {
 
     const matched = matchFaq(q, lang);
     if (matched) {
-      add(t(matched.entry.answer), 'faq');
+      add(t(`${faqKey(matched.entry.id)}.a`), 'faq');
     } else {
       add(
         lang === 'hi'
           ? 'मैं राशनसाथी के इस्तेमाल और शिकायत की प्रक्रिया से जुड़े सवालों के जवाब दे सकता हूँ। नीचे दिए सवालों में से कोई चुनें।'
-          : 'I can answer questions about how RationSaathi works and the grievance process. Try one of the questions below.',
+          : t('help.iCanAnswerQuestionsAbout'),
         'faq',
       );
     }
@@ -92,13 +93,19 @@ export function HelpPageContent() {
     }
   };
 
-  const quickPills = [
-    'What is my monthly entitlement?',
-    'What does Unrecorded mean?',
-    'What does Unclear mean?',
-    'What does a DGRO officer do?',
-    'How do I file my grievance?',
-  ];
+  // Quick questions answer straight from the FAQ in the UI language (no keyword matching needed).
+  const quickPills = ['what-is-entitlement', 'what-is-unrecorded', 'what-is-unclear', 'what-is-dgro', 'after-filing'].map((id) => ({
+    id,
+    q: t(`${faqKey(id)}.q`),
+  }));
+
+  const askFaq = (id: string, q: string) => {
+    setMessages((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), sender: 'user', text: q },
+      { id: crypto.randomUUID(), sender: 'assistant', text: t(`${faqKey(id)}.a`), source: 'faq' },
+    ]);
+  };
 
   return (
     <div className="min-h-screen bg-[#fbf9f4] dark:bg-[#141716] text-[#1c1917] dark:text-stone-100 flex flex-col font-sans pb-28">
@@ -111,17 +118,18 @@ export function HelpPageContent() {
             <button
               onClick={() => router.back()}
               className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#244b38]"
-              title="Go back"
+              title={t('common.goBack')}
             >
               <ArrowLeft className="w-5 h-5 text-stone-700 dark:text-stone-300" />
             </button>
             <h2 className="text-base font-extrabold text-[#1c3d2e] dark:text-stone-100">
-              Plain-Language Assistant
+              
+              {t('help.plainLanguageAssistant')}
             </h2>
           </div>
           <ListenButton
-            text="RationSaathi plain-language assistant. Ask questions about rules, ledger labels, or grievance filing steps."
-            label="Listen"
+            text={t('help.rationsaathiPlainLanguageAssistantAsk')}
+            label={t('actions.listen')}
           />
         </div>
 
@@ -130,10 +138,11 @@ export function HelpPageContent() {
           <div className="p-4 rounded-3xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 text-xs space-y-3 shadow-warm">
             <div className="flex items-center gap-2 font-extrabold text-amber-900">
               <Shield className="w-4 h-4 text-amber-700" />
-              <span>Allow Cloud Assistance for this Question?</span>
+              <span>{t('help.allowCloudAssistanceForThis')}</span>
             </div>
             <p className="text-amber-800 leading-relaxed">
-              No local answer matched. Would you like to consult the cloud assistant for procedural assistance? ID numbers are always blacked out before sending.
+              
+              {t('help.noLocalAnswerMatchedWould')}
             </p>
             <div className="grid grid-cols-3 gap-2 pt-1">
               <button
@@ -141,21 +150,24 @@ export function HelpPageContent() {
                 onClick={() => handleConsentChoice('once')}
                 className="min-h-[44px] py-2 px-2 bg-[#244b38] text-white rounded-xl font-extrabold text-[11px] text-center"
               >
-                Send once
+                
+                {t('common.sendOnce')}
               </button>
               <button
                 type="button"
                 onClick={() => handleConsentChoice('always')}
                 className="min-h-[44px] py-2 px-2 bg-white border border-[#244b38] text-[#244b38] rounded-xl font-extrabold text-[11px] text-center"
               >
-                Always allow
+                
+                {t('help.alwaysAllow')}
               </button>
               <button
                 type="button"
                 onClick={() => handleConsentChoice('cancel')}
                 className="min-h-[44px] py-2 px-2 bg-stone-200 text-stone-700 rounded-xl font-bold text-[11px] text-center"
               >
-                No, I&apos;ll type it
+                
+                {t('help.noILlTypeIt')}
               </button>
             </div>
           </div>
@@ -163,14 +175,14 @@ export function HelpPageContent() {
 
         {/* Suggestion Chips */}
         <div className="overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none flex gap-1.5">
-          {quickPills.map((p, idx) => (
+          {quickPills.map((p) => (
             <button
-              key={idx}
+              key={p.id}
               type="button"
-              onClick={() => handleSend(p)}
+              onClick={() => askFaq(p.id, p.q)}
               className="min-h-[40px] whitespace-nowrap px-3.5 py-1.5 text-xs bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 hover:border-[#244b38] rounded-full text-stone-700 dark:text-stone-300 font-bold transition-colors shadow-2xs active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
             >
-              {p}
+              {p.q}
             </button>
           ))}
         </div>
@@ -210,7 +222,7 @@ export function HelpPageContent() {
                           className="min-h-[36px] hover:text-[#244b38] flex items-center gap-1 font-bold"
                         >
                           <Volume2 className="w-3.5 h-3.5" />
-                          <span>Listen</span>
+                          <span>{t('actions.listen')}</span>
                         </button>
                       </div>
                     )}
@@ -224,7 +236,7 @@ export function HelpPageContent() {
           <div className="pt-3 border-t border-[#eee7db] dark:border-stone-800 flex items-center gap-2">
             <input
               type="text"
-              placeholder="Ask a question about your ration rules..."
+              placeholder={t('help.askAQuestionAboutYour')}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
@@ -235,7 +247,7 @@ export function HelpPageContent() {
               onClick={() => handleSend()}
               disabled={!input.trim()}
               className="min-h-[48px] min-w-[48px] bg-[#244b38] hover:bg-[#1b3a2b] text-white rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 shrink-0 shadow-xs focus:outline-none focus:ring-2 focus:ring-[#244b38]"
-              title="Send question"
+              title={t('help.sendQuestion')}
             >
               <Send className="w-4 h-4" />
             </button>

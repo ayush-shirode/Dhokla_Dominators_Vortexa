@@ -9,7 +9,7 @@ import { ListenButton } from '@/components/Navigation';
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { lang, setLang } = useApp();
+  const { lang, setLang, t } = useApp();
 
   // Screen flow:
   // 1: Language Picker (can be skipped, defaults to English)
@@ -41,7 +41,8 @@ export default function OnboardingPage() {
         <div className="flex items-center gap-2">
           <span className="text-xl">🌾</span>
           <span className="font-extrabold text-sm text-[#1c3d2e] dark:text-stone-100">
-            Ration<span className="text-[#c07b17]">Saathi</span>
+            
+            {t('common.ration')}<span className="text-[#c07b17]">{t('common.saathi')}</span>
           </span>
         </div>
 
@@ -50,7 +51,8 @@ export default function OnboardingPage() {
             onClick={handleSkipLanguage}
             className="min-h-[44px] px-3 text-xs text-stone-500 font-bold hover:underline focus:outline-none focus:ring-2 focus:ring-[#244b38] rounded-lg"
           >
-            Skip (English) &rarr;
+            
+            {t('onboarding.skipEnglish')}
           </button>
         )}
       </div>
@@ -62,12 +64,14 @@ export default function OnboardingPage() {
             <div className="text-left space-y-1">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-extrabold text-[#1c3d2e] dark:text-stone-100">
-                  Choose your language
+                  
+                  {t('onboarding.chooseYourLanguage')}
                 </h2>
-                <ListenButton text="Choose your language. Select your preferred language to continue." label="Listen" />
+                <ListenButton text={t('onboarding.chooseYourLanguageSelectYour')} label={t('actions.listen')} />
               </div>
               <p className="text-xs text-stone-500 font-medium">
-                Select your preferred language to continue
+                
+                {t('onboarding.selectYourPreferredLanguageTo')}
               </p>
             </div>
 
@@ -108,7 +112,7 @@ export default function OnboardingPage() {
               onClick={() => setStep(2)}
               className="w-full min-h-[48px] py-4 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-extrabold text-xs rounded-2xl shadow-warm flex items-center justify-center gap-2 transition-all active:scale-98 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
             >
-              <span>Continue &bull; आगे बढ़ें</span>
+              <span>{t('onboarding.continue')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -119,10 +123,12 @@ export default function OnboardingPage() {
           <div className="space-y-5">
             <div className="text-center space-y-1">
               <h2 className="text-base font-extrabold text-[#1c3d2e] dark:text-stone-100">
-                How RationSaathi Works
+                
+                {t('onboarding.howRationsaathiWorks')}
               </h2>
               <p className="text-xs text-stone-500 font-medium">
-                Transparent &bull; Evidence-based &bull; Self-filed
+                
+                {t('onboarding.transparentEvidenceBasedSelfFiled')}
               </p>
             </div>
 
@@ -130,21 +136,21 @@ export default function OnboardingPage() {
               <div className="p-4 rounded-2xl bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] dark:border-stone-800 flex items-start gap-3">
                 <Scale className="w-5 h-5 text-[#244b38] shrink-0 mt-0.5" />
                 <p>
-                  <strong>Compare your entitlement:</strong> Check what statutory rules guarantee each month versus what you actually received.
+                  <strong>{t('onboarding.compareYourEntitlement')}</strong> {' '}{t('onboarding.checkWhatStatutoryRulesGuarantee')}
                 </p>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] dark:border-stone-800 flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-[#244b38] shrink-0 mt-0.5" />
                 <p>
-                  <strong>Plain arithmetic:</strong> No automated guesses. Every calculation is clear arithmetic linked to your receipts and slips.
+                  <strong>{t('onboarding.plainArithmetic')}</strong> {' '}{t('onboarding.noAutomatedGuessesEveryCalculation')}
                 </p>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] dark:border-stone-800 flex items-start gap-3">
                 <ShieldCheck className="w-5 h-5 text-[#244b38] shrink-0 mt-0.5" />
                 <p>
-                  <strong>You file yourself:</strong> RationSaathi prepares the text copy. You submit it yourself on the official government portal.
+                  <strong>{t('onboarding.youFileYourself')}</strong> {' '}{t('onboarding.rationsaathiPreparesTheTextCopy')}
                 </p>
               </div>
             </div>
@@ -153,7 +159,7 @@ export default function OnboardingPage() {
               onClick={() => setStep(3)}
               className="w-full min-h-[48px] py-4 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-extrabold text-xs rounded-2xl shadow-warm flex items-center justify-center gap-2 transition-all active:scale-98 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
             >
-              <span>Next &bull; Privacy Guarantee</span>
+              <span>{t('onboarding.nextPrivacyGuarantee')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -165,30 +171,34 @@ export default function OnboardingPage() {
             <div className="text-center space-y-1">
               <h2 className="text-base font-extrabold text-[#1c3d2e] dark:text-stone-100 flex items-center justify-center gap-1.5">
                 <Lock className="w-4 h-4 text-[#244b38]" />
-                <span>Your Privacy is Guaranteed</span>
+                <span>{t('onboarding.yourPrivacyIsGuaranteed')}</span>
               </h2>
               <p className="text-xs text-stone-500 font-medium">
-                Offline-first &bull; Local storage only
+                
+                {t('onboarding.offlineFirstLocalStorageOnly')}
               </p>
             </div>
 
             <div className="p-4 bg-[#fbf9f4] dark:bg-stone-950 rounded-2xl border border-[#eee7db] dark:border-stone-800 text-xs space-y-3 text-stone-700 dark:text-stone-300">
               <div className="flex items-start gap-2">
-                <span className="text-[#244b38] font-bold">&bull;</span>
+                <span className="text-[#244b38] font-bold">{t('common.x')}</span>
                 <p>
-                  Your ration card number <strong>never leaves this phone</strong>. It is saved in local browser storage only.
+                  
+                  {t('onboarding.cardNumberLocal')}
                 </p>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-[#244b38] font-bold">&bull;</span>
+                <span className="text-[#244b38] font-bold">{t('common.x')}</span>
                 <p>
-                  Any 12-digit Aadhaar numbers are automatically blacked out before saving.
+                  
+                  {t('onboarding.any12DigitAadhaarNumbers')}
                 </p>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-[#244b38] font-bold">&bull;</span>
+                <span className="text-[#244b38] font-bold">{t('common.x')}</span>
                 <p>
-                  We never ask for passwords or OTPs, and we never automatically file complaints on your behalf.
+                  
+                  {t('onboarding.weNeverAskForPasswords')}
                 </p>
               </div>
             </div>
@@ -197,7 +207,7 @@ export default function OnboardingPage() {
               onClick={handleFinishOnboarding}
               className="w-full min-h-[48px] py-4 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-extrabold text-xs rounded-2xl shadow-warm flex items-center justify-center gap-2 transition-all active:scale-98 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
             >
-              <span>Get Started</span>
+              <span>{t('onboarding.getStarted')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -205,7 +215,8 @@ export default function OnboardingPage() {
       </div>
 
       <div className="text-center text-[11px] text-stone-400 font-medium">
-        RationSaathi &bull; Sahi Ration, Sabka Adhikar
+        
+        {t('onboarding.rationsaathiSahiRationSabkaAdhikar')}
       </div>
     </div>
   );
