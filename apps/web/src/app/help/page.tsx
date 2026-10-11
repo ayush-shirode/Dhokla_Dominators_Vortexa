@@ -6,7 +6,7 @@ import { Header, BottomNav, ListenButton } from '@/components/Navigation';
 import { FAQ, CAUSE_REDIRECT, isCauseQuestion, matchFaq, checkNeutrality } from '@repo/shared';
 import { api } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
-import { Send, Volume2, HelpCircle, Bot, Sparkles, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Send, Volume2, ArrowLeft, Shield } from 'lucide-react';
 
 interface ChatMsg {
   id: string;
@@ -22,8 +22,8 @@ interface ChatMsg {
 
 export function HelpPageContent() {
   const router = useRouter();
-  const { speak, lang, capabilities, aiConsent, requestCloudConsent } = useApp();
-  const [aiOfferFor, setAiOfferFor] = useState<string | null>(null);
+  const { speak, lang, capabilities, aiConsent, setAiConsent } = useApp();
+  const [showConsentModal, setShowConsentModal] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       id: 'welcome',
@@ -31,74 +31,49 @@ export function HelpPageContent() {
       text: 'Namaste! I am your RationSaathi plain-language assistant. Ask me questions about ration rules, labels like Unrecorded or Unclear, DGRO officers, or filing your grievance.',
       source: 'faq',
     },
-    {
-      id: 'mock-user-1',
-      sender: 'user',
-      text: 'What is my monthly entitlement?',
-    },
-    {
-      id: 'mock-assistant-1',
-      sender: 'assistant',
-      text: 'For your PHH card with 4 members, your monthly entitlement is 20 kg (5 kg per member).',
-      source: 'faq',
-      formula: {
-        text: '5 kg × 4 members = 20 kg',
-        source: 'NFSA Statutory Rules',
-        verified: '12 Apr 2025',
-      },
-    },
   ]);
   const [input, setInput] = useState('');
 
   const t = (x: { en: string; hi: string }) => (lang === 'hi' ? x.hi : x.en);
 
-  const handleSend = async (textToSend?: string, forceCloud = false) => {
+  const handleSend = async (textToSend?: string, allowCloudOverride?: boolean) => {
     const q = (textToSend || input).trim();
     if (!q) return;
 
-    setAiOfferFor(null);
-    if (!forceCloud) {
+    if (!allowCloudOverride) {
       const userMsg: ChatMsg = { id: crypto.randomUUID(), sender: 'user', text: q };
       setMessages((prev) => [...prev, userMsg]);
     }
     if (!textToSend) setInput('');
+
     const add = (text: string, source: ChatMsg['source'], formula?: ChatMsg['formula']) =>
       setMessages((prev) => [...prev, { id: crypto.randomUUID(), sender: 'assistant', text, source, formula }]);
 
-    // Scope guardrail (Spec §5.6): never discuss why a specific difference happened or who is to blame.
+    // Guardrail: never assign blame or discuss corrupt/scam causes
     if (isCauseQuestion(q) || !checkNeutrality(q).ok) {
       add(t(CAUSE_REDIRECT), 'guardrail');
       return;
     }
 
+    const allowCloud = allowCloudOverride ?? (capabilities.cloudAi && aiConsent.cloudAssist);
+
     try {
-      const allowCloud = forceCloud || (capabilities.cloudAi && aiConsent.cloudAssist);
       const reply = await api.ai.chat({ messages: [{ role: 'user', content: q }], language: lang, allowCloud });
       add(reply.reply, reply.source === 'ai' ? 'ai' : reply.source === 'guardrail' ? 'guardrail' : 'faq');
-      if (reply.source === 'fallback' && capabilities.cloudAi && !allowCloud) setAiOfferFor(q);
+      if (reply.source === 'fallback' && capabilities.cloudAi && !allowCloud) {
+        setShowConsentModal(q);
+      }
       return;
     } catch {
-      /* offline: answer locally */
+      // Offline fallback
     }
 
     const matched = matchFaq(q, lang);
-    if (q.toLowerCase().includes('entitlement')) {
-      add(
-        lang === 'hi'
-          ? 'आपके PHH कार्ड (4 सदस्य) के अनुसार आपका मासिक कोटा 20 किलोग्राम (5 किग्रा प्रति सदस्य) है।'
-          : 'For your PHH card with 4 members, your monthly entitlement is 20 kg (5 kg per member).',
-        'faq',
-        {
-          text: '5 kg × 4 members = 20 kg',
-          source: 'NFSA Statutory Rules',
-          verified: '12 Apr 2025',
-        },
-      );
+    if (matched) {
+      add(t(matched.entry.answer), 'faq');
     } else {
       add(
-        matched
-          ? t(matched.entry.answer)
-          : lang === 'hi'
+        lang === 'hi'
           ? 'मैं राशनसाथी के इस्तेमाल और शिकायत की प्रक्रिया से जुड़े सवालों के जवाब दे सकता हूँ। नीचे दिए सवालों में से कोई चुनें।'
           : 'I can answer questions about how RationSaathi works and the grievance process. Try one of the questions below.',
         'faq',
@@ -106,19 +81,23 @@ export function HelpPageContent() {
     }
   };
 
-  const askAi = async () => {
-    if (!aiOfferFor) return;
-    const q = aiOfferFor;
-    if (await requestCloudConsent('cloudAssist')) await handleSend(q, true);
+  const handleConsentChoice = (choice: 'once' | 'always' | 'cancel') => {
+    const q = showConsentModal;
+    setShowConsentModal(null);
+    if (choice === 'once' && q) {
+      handleSend(q, true);
+    } else if (choice === 'always' && q) {
+      setAiConsent({ ...aiConsent, cloudAssist: true });
+      handleSend(q, true);
+    }
   };
 
   const quickPills = [
     'What is my monthly entitlement?',
-    'Check next due date',
-    'View records',
-    'Raise grievance',
-    'What is Unrecorded?',
-    'What is DGRO officer?',
+    'What does Unrecorded mean?',
+    'What does Unclear mean?',
+    'What does a DGRO officer do?',
+    'How do I file my grievance?',
   ];
 
   return (
@@ -126,50 +105,70 @@ export function HelpPageContent() {
       <Header />
 
       <main className="flex-1 max-w-md mx-auto px-4 py-5 w-full flex flex-col space-y-4">
-        {/* Top Header Matching Screen 11 & 12 */}
+        {/* Top Header */}
         <div className="flex items-center justify-between border-b border-[#eee7db] dark:border-stone-800 pb-3">
           <div className="flex items-center gap-2">
             <button
               onClick={() => router.back()}
-              className="p-1.5 rounded-full hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+              title="Go back"
             >
               <ArrowLeft className="w-5 h-5 text-stone-700 dark:text-stone-300" />
             </button>
-            <div className="flex items-center gap-1.5">
-              <h2 className="text-base font-extrabold text-[#1c3d2e] dark:text-stone-100">
-                RationSaathi Assistant
-              </h2>
-            </div>
+            <h2 className="text-base font-extrabold text-[#1c3d2e] dark:text-stone-100">
+              Plain-Language Assistant
+            </h2>
           </div>
           <ListenButton
-            text="RationSaathi assistant. Ask any question about your monthly entitlement, statutory rules, or grievance filing steps."
+            text="RationSaathi plain-language assistant. Ask questions about rules, ledger labels, or grievance filing steps."
             label="Listen"
           />
         </div>
 
-        {aiOfferFor && (
-          <div className="p-3.5 rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 text-xs flex items-center justify-between gap-3 shadow-2xs">
-            <span className="text-amber-900 dark:text-amber-200">
-              No local answer matched. Ask the cloud AI assistant for procedural guidance?
-            </span>
-            <button
-              type="button"
-              onClick={askAi}
-              className="px-3 py-1.5 bg-[#244b38] text-white rounded-xl font-bold shrink-0"
-            >
-              Ask AI
-            </button>
+        {/* 3-CHOICE CLOUD AI CONSENT MODAL */}
+        {showConsentModal && (
+          <div className="p-4 rounded-3xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 text-xs space-y-3 shadow-warm">
+            <div className="flex items-center gap-2 font-extrabold text-amber-900">
+              <Shield className="w-4 h-4 text-amber-700" />
+              <span>Allow Cloud Assistance for this Question?</span>
+            </div>
+            <p className="text-amber-800 leading-relaxed">
+              No local answer matched. Would you like to consult the cloud assistant for procedural assistance? ID numbers are always blacked out before sending.
+            </p>
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => handleConsentChoice('once')}
+                className="min-h-[44px] py-2 px-2 bg-[#244b38] text-white rounded-xl font-extrabold text-[11px] text-center"
+              >
+                Send once
+              </button>
+              <button
+                type="button"
+                onClick={() => handleConsentChoice('always')}
+                className="min-h-[44px] py-2 px-2 bg-white border border-[#244b38] text-[#244b38] rounded-xl font-extrabold text-[11px] text-center"
+              >
+                Always allow
+              </button>
+              <button
+                type="button"
+                onClick={() => handleConsentChoice('cancel')}
+                className="min-h-[44px] py-2 px-2 bg-stone-200 text-stone-700 rounded-xl font-bold text-[11px] text-center"
+              >
+                No, I&apos;ll type it
+              </button>
+            </div>
           </div>
         )}
 
-        {/* Suggestion Chips Matching Screen 11 & 12 */}
+        {/* Suggestion Chips */}
         <div className="overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none flex gap-1.5">
           {quickPills.map((p, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => handleSend(p)}
-              className="whitespace-nowrap px-3 py-1.5 text-xs bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 hover:border-[#244b38] rounded-full text-stone-700 dark:text-stone-300 font-medium transition-colors shadow-2xs active:scale-95"
+              className="min-h-[40px] whitespace-nowrap px-3.5 py-1.5 text-xs bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 hover:border-[#244b38] rounded-full text-stone-700 dark:text-stone-300 font-bold transition-colors shadow-2xs active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
             >
               {p}
             </button>
@@ -177,7 +176,7 @@ export function HelpPageContent() {
         </div>
 
         {/* Chat Stream Window */}
-        <div className="flex-1 bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-3xl p-4 shadow-warm flex flex-col justify-between min-h-[380px] space-y-4">
+        <div className="flex-1 bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-3xl p-4 shadow-warm flex flex-col justify-between min-h-[360px] space-y-4">
           <div className="space-y-4 overflow-y-auto max-h-[440px] pr-1">
             {messages.map((m) => {
               const isUser = m.sender === 'user';
@@ -188,7 +187,7 @@ export function HelpPageContent() {
                 >
                   {!isUser && (
                     <div className="w-8 h-8 rounded-full bg-[#edf7f2] dark:bg-emerald-950/60 text-[#244b38] dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs mt-1">
-                      🤖
+                      🌾
                     </div>
                   )}
 
@@ -201,39 +200,16 @@ export function HelpPageContent() {
                       }`}
                     >
                       <p>{m.text}</p>
-
-                      {/* Formula Box Matching Screen 11 & 12 */}
-                      {m.formula && (
-                        <div className="mt-3 p-3 rounded-xl bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 space-y-1.5">
-                          <div className="text-[10px] uppercase font-bold text-stone-500">
-                            Entitlement formula:
-                          </div>
-                          <div className="font-mono font-extrabold text-xs text-[#1c3d2e] dark:text-stone-100">
-                            {m.formula.text}
-                          </div>
-                          <div className="text-[10px] text-stone-400 font-medium">
-                            Source: {m.formula.source}
-                          </div>
-                          <div className="text-[10px] text-stone-400 font-medium">
-                            Last verified: {m.formula.verified}
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     {!isUser && (
                       <div className="flex items-center gap-2 text-[10px] text-stone-400 px-1">
-                        {m.source === 'ai' && (
-                          <span className="bg-[#edf7f2] text-[#166534] px-1.5 py-0.5 rounded font-bold">
-                            AI &bull; Process Only
-                          </span>
-                        )}
                         <button
                           type="button"
                           onClick={() => speak(m.text)}
-                          className="hover:text-[#244b38] flex items-center gap-0.5 font-medium"
+                          className="min-h-[36px] hover:text-[#244b38] flex items-center gap-1 font-bold"
                         >
-                          <Volume2 className="w-3 h-3" />
+                          <Volume2 className="w-3.5 h-3.5" />
                           <span>Listen</span>
                         </button>
                       </div>
@@ -244,21 +220,22 @@ export function HelpPageContent() {
             })}
           </div>
 
-          {/* Input Bar Matching Screen 11 & 12 */}
+          {/* Input Bar */}
           <div className="pt-3 border-t border-[#eee7db] dark:border-stone-800 flex items-center gap-2">
             <input
               type="text"
-              placeholder="Type your question..."
+              placeholder="Ask a question about your ration rules..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              className="flex-1 px-4 py-3 text-xs bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] dark:border-stone-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#244b38] font-medium"
+              className="flex-1 min-h-[48px] px-4 py-2.5 text-xs bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#244b38] font-medium"
             />
             <button
               type="button"
               onClick={() => handleSend()}
               disabled={!input.trim()}
-              className="w-10 h-10 bg-[#244b38] hover:bg-[#1b3a2b] text-white rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 shrink-0 shadow-xs"
+              className="min-h-[48px] min-w-[48px] bg-[#244b38] hover:bg-[#1b3a2b] text-white rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 shrink-0 shadow-xs focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+              title="Send question"
             >
               <Send className="w-4 h-4" />
             </button>

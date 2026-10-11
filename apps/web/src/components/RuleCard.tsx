@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import { EntitlementRule, CardType, computeEntitlement } from '@repo/shared';
+import type { CardType, EntitlementRule } from '@repo/shared';
+import { computeEntitlement } from '@repo/shared';
+import { CheckCircle2, AlertCircle, ExternalLink, ShieldCheck } from 'lucide-react';
 import { ListenButton } from './Navigation';
-import { CheckCircle2, AlertTriangle, ExternalLink, ShieldCheck } from 'lucide-react';
 
 interface RuleCardProps {
   cardType: CardType;
@@ -11,8 +12,9 @@ interface RuleCardProps {
   rule: EntitlementRule;
   isConfirmed: boolean;
   confirmedDate?: string | null;
-  onConfirm: () => void;
-  onEdit?: () => void;
+  isEdited?: boolean;
+  onConfirm?: () => void;
+  showActions?: boolean;
 }
 
 export function RuleCard({
@@ -21,111 +23,103 @@ export function RuleCard({
   rule,
   isConfirmed,
   confirmedDate,
+  isEdited = false,
   onConfirm,
-  onEdit,
+  showActions = true,
 }: RuleCardProps) {
-  const { formula, kg: entitledKg } = computeEntitlement({
+  const computation = computeEntitlement({
     cardType,
     members,
     rule,
   });
 
-  const ruleSpoken = `Rule used for calculation: ${formula}. ${isConfirmed ? 'This rule is confirmed.' : 'Please confirm this rule to calculate discrepancy.'}`;
+  const ruleSummaryText = `Entitlement rule: ${computation.formula}. Source: ${rule.sourceTitle || 'NFSA Statutory Rules'}. ${rule.lastVerified ? `Last verified: ${rule.lastVerified}.` : 'Not verified yet.'}`;
 
   return (
     <div
-      className={`rounded-2xl border p-4.5 transition-all ${
+      className={`bg-white dark:bg-[#202622] border rounded-2xl p-5 shadow-subtle transition-all ${
         isConfirmed
-          ? 'bg-[#f7f5ed] dark:bg-stone-900 border-[#e1dac8] dark:border-stone-800 shadow-2xs'
-          : 'bg-[#fffaf0] dark:bg-amber-950/20 border-amber-300 dark:border-amber-700/60 shadow-xs'
+          ? 'border-[#bbf7d0] dark:border-emerald-800'
+          : 'border-[#E8E5DD] dark:border-stone-800'
       }`}
     >
-      <div className="flex items-start justify-between gap-3 mb-2.5">
+      <div className="flex items-center justify-between gap-2 border-b border-[#E8E5DD] dark:border-stone-800 pb-3 mb-3">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-[#244b38]/10 text-[#244b38] dark:text-emerald-400 flex items-center justify-center font-bold text-xs">
-            ⚖
-          </div>
-          <span className="text-xs font-bold uppercase tracking-wider text-[#1e4131] dark:text-emerald-400">
-            Statutory Entitlement Rule
+          {isConfirmed ? (
+            <CheckCircle2 className="w-4 h-4 text-[#166534] dark:text-emerald-400 shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          )}
+          <span className="text-xs font-semibold text-stone-800 dark:text-stone-200">
+            {isConfirmed ? 'Applicable Rule Confirmed' : 'Entitlement Rule Confirmation'}
           </span>
-          <ListenButton text={ruleSpoken} label="Listen" />
         </div>
-        {isConfirmed ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#244b38] dark:text-emerald-400 bg-[#244b38]/10 dark:bg-emerald-950 px-2.5 py-0.5 rounded-full border border-[#244b38]/20">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            Confirmed {confirmedDate ? `(${confirmedDate.split('T')[0]})` : ''}
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-2.5 py-0.5 rounded-full border border-amber-300 dark:border-amber-800">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            Confirmation Needed
-          </span>
-        )}
+
+        <div className="flex items-center gap-2">
+          {isEdited && (
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
+              Edited by you
+            </span>
+          )}
+          <ListenButton text={ruleSummaryText} label="Listen" />
+        </div>
       </div>
 
-      {/* Formula Display - Reference Green Highlight & Monospace */}
-      <div className="my-2.5 p-3.5 rounded-xl bg-white dark:bg-stone-950 border border-[#eee7db] dark:border-stone-800 font-mono text-sm sm:text-base font-bold text-[#1c3d2e] dark:text-stone-100 flex items-center justify-between shadow-2xs">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#244b38]" />
-          <span>{formula}</span>
-        </div>
-        <span className="text-xs text-stone-500 font-sans font-semibold">
-          ({entitledKg} kg / month)
+      {/* Compact summary with clear label */}
+      <div className="py-1">
+        <span className="text-[11px] font-medium text-stone-500 block mb-1">
+          Calculated monthly entitlement:
         </span>
+        <div className="font-mono text-xl sm:text-2xl font-bold text-[#1c3d2e] dark:text-stone-100 tracking-tight">
+          {computation.formula}
+        </div>
       </div>
 
-      {/* Source Citation */}
-      <div className="text-xs text-stone-600 dark:text-stone-400 space-y-1 bg-white/60 dark:bg-stone-950/40 p-3 rounded-lg border border-[#eee7db]/80 dark:border-stone-800">
-        <div className="flex items-center gap-1 flex-wrap">
-          <span className="font-semibold text-stone-800 dark:text-stone-200">Source:</span>
-          <span>{rule.sourceTitle}</span>
-          {rule.sourceUrl && (
+      {/* Source Citation & Verification Status */}
+      <div className="pt-3 mt-3 border-t border-[#E8E5DD] dark:border-stone-800 text-xs text-stone-600 dark:text-stone-400 space-y-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-stone-500">Source:</span>
+          {rule.sourceUrl ? (
             <a
               href={rule.sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center text-[#244b38] dark:text-emerald-400 hover:underline gap-0.5 font-medium ml-1"
+              className="text-[#244b38] dark:text-emerald-400 font-medium underline inline-flex items-center gap-1 hover:text-[#1b3a2b]"
             >
-              <span>nfsa.gov.in</span>
+              <span>{rule.sourceTitle || 'NFSA Statutory Rules'}</span>
               <ExternalLink className="w-3 h-3" />
             </a>
+          ) : (
+            <span className="font-medium text-stone-700">{rule.sourceTitle || 'State Scheme'}</span>
           )}
         </div>
-        <div>
-          <span className="font-semibold text-stone-800 dark:text-stone-200">Last verified:</span>{' '}
-          {rule.lastVerified || 'not verified yet'}
+
+        <div className="text-[11px] text-stone-500">
+          {rule.lastVerified ? (
+            <span>Last verified: {rule.lastVerified}</span>
+          ) : (
+            <span className="italic">Not verified yet</span>
+          )}
         </div>
-        <p className="text-[11px] text-stone-500 italic pt-1">
-          State schemes may give more grain. If yours differs, edit the rule figure.
-        </p>
       </div>
 
-      {/* Actions */}
-      <div className="mt-3.5 pt-3 border-t border-[#eee7db] dark:border-stone-800 flex items-center justify-between gap-3">
-        {onEdit && (
-          <button
-            type="button"
-            onClick={onEdit}
-            className="text-xs text-stone-600 dark:text-stone-300 hover:text-stone-900 underline font-semibold"
-          >
-            Edit rule settings
-          </button>
-        )}
-        {!isConfirmed ? (
+      {/* Confirmation Action Button */}
+      {showActions && onConfirm && (
+        <div className="pt-3 mt-3 border-t border-[#E8E5DD] dark:border-stone-800">
           <button
             type="button"
             onClick={onConfirm}
-            className="w-full sm:w-auto px-5 py-2.5 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-98"
+            className={`w-full min-h-[48px] py-3 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all active:scale-98 focus:outline-none focus:ring-2 focus:ring-[#244b38] ${
+              isConfirmed
+                ? 'bg-[#edf7f2] hover:bg-[#e2f2e9] text-[#166534] border border-[#bbf7d0]'
+                : 'bg-[#244b38] hover:bg-[#1b3a2b] text-white shadow-warm'
+            }`}
           >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Confirm &amp; Use this rule</span>
+            <ShieldCheck className="w-4 h-4" />
+            <span>{isConfirmed ? 'Rule Confirmed ✓ (Tap to re-confirm)' : 'Use this rule'}</span>
           </button>
-        ) : (
-          <span className="text-xs text-[#244b38] dark:text-emerald-400 font-bold flex items-center gap-1">
-            <CheckCircle2 className="w-4 h-4" /> Rule active for calculations
-          </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

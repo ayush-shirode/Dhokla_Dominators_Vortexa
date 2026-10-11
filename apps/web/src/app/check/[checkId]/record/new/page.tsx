@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCheckId, usePathSegment } from '@/lib/routeParams';
 import { Header, BottomNav, ListenButton } from '@/components/Navigation';
@@ -12,7 +13,14 @@ import {
   redactSensitiveIds,
 } from '@repo/shared';
 import type { LocalRecord } from '@/lib/localTypes';
-import { ArrowLeft, Save, AlertCircle, ShieldAlert, Check } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  Camera,
+  ClipboardPaste,
+  Mic,
+  PenTool,
+} from 'lucide-react';
 import { NEUTRALITY_HINT, flaggedTermsText } from '@/lib/neutrality';
 
 export default function RecordFormPage() {
@@ -104,7 +112,7 @@ export default function RecordFormPage() {
       };
 
       await saveLocalRecord(record);
-      router.push(`/check/${checkId}`);
+      router.push(`/check/${checkId}?highlight=${id}`);
     } finally {
       setSaving(false);
     }
@@ -120,7 +128,8 @@ export default function RecordFormPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => router.back()}
-              className="p-1.5 rounded-full hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+              title="Go back"
             >
               <ArrowLeft className="w-5 h-5 text-stone-700 dark:text-stone-300" />
             </button>
@@ -129,44 +138,53 @@ export default function RecordFormPage() {
             </h2>
           </div>
           <ListenButton
-            text="Add record form. Enter distribution date, quantity in kilograms, select evidence type, and add transaction details."
+            text="Add record. Choose method: Type, Photo, Paste, or Voice. Enter date and quantity."
             label="Listen"
           />
         </div>
 
-        {/* Quick Nav Chips for Input Modes (Screen 7 top bar) */}
-        <div className="grid grid-cols-4 gap-2">
-          <span className="py-2 text-center text-xs font-bold rounded-xl bg-[#244b38] text-white shadow-xs">
-            Manual
+        {/* Method Chooser: Type, Photo, Paste, Voice */}
+        <div className="bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-3xl p-4 shadow-warm space-y-2">
+          <span className="text-[11px] font-extrabold uppercase tracking-wider text-stone-600 block">
+            Choose Entry Method
           </span>
-          <button
-            type="button"
-            onClick={() => router.push(`/check/${checkId}/paste`)}
-            className="py-2 text-center text-xs font-bold rounded-xl bg-white dark:bg-stone-900 border border-[#eee7db] text-stone-600 hover:bg-[#f3eee3]"
-          >
-            SMS
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push(`/check/${checkId}/capture`)}
-            className="py-2 text-center text-xs font-bold rounded-xl bg-white dark:bg-stone-900 border border-[#eee7db] text-stone-600 hover:bg-[#f3eee3]"
-          >
-            Photo
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push(`/check/${checkId}/voice`)}
-            className="py-2 text-center text-xs font-bold rounded-xl bg-white dark:bg-stone-900 border border-[#eee7db] text-stone-600 hover:bg-[#f3eee3]"
-          >
-            Voice
-          </button>
+          <div className="grid grid-cols-4 gap-2">
+            <span className="min-h-[48px] py-2 px-1 text-center text-xs font-extrabold rounded-2xl bg-[#244b38] text-white shadow-xs flex flex-col items-center justify-center gap-1">
+              <PenTool className="w-4 h-4" />
+              <span>Type</span>
+            </span>
+
+            <Link
+              href={`/check/${checkId}/capture`}
+              className="min-h-[48px] py-2 px-1 text-center text-xs font-bold rounded-2xl bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] text-stone-700 hover:bg-[#f3eee3] flex flex-col items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+            >
+              <Camera className="w-4 h-4 text-[#244b38]" />
+              <span>Photo</span>
+            </Link>
+
+            <Link
+              href={`/check/${checkId}/paste`}
+              className="min-h-[48px] py-2 px-1 text-center text-xs font-bold rounded-2xl bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] text-stone-700 hover:bg-[#f3eee3] flex flex-col items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+            >
+              <ClipboardPaste className="w-4 h-4 text-[#244b38]" />
+              <span>Paste</span>
+            </Link>
+
+            <Link
+              href={`/check/${checkId}/voice`}
+              className="min-h-[48px] py-2 px-1 text-center text-xs font-bold rounded-2xl bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] text-stone-700 hover:bg-[#f3eee3] flex flex-col items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
+            >
+              <Mic className="w-4 h-4 text-[#244b38]" />
+              <span>Voice</span>
+            </Link>
+          </div>
         </div>
 
-        {/* Form Container Matching Screen 7 */}
+        {/* Form Container */}
         <form onSubmit={handleSubmit} className="bg-white dark:bg-stone-900 border border-[#eee7db] dark:border-stone-800 rounded-3xl p-5 shadow-warm space-y-4">
           {/* Date of Receipt */}
           <div>
-            <label className="text-xs font-bold text-stone-700 dark:text-stone-300 block mb-1">
+            <label className="text-xs font-extrabold text-stone-700 dark:text-stone-300 block mb-1">
               Date of receipt *
             </label>
             <input
@@ -174,19 +192,19 @@ export default function RecordFormPage() {
               value={date}
               max={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-xs bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] dark:border-stone-700 rounded-xl text-stone-900 dark:text-stone-100 font-mono font-bold"
+              className="w-full min-h-[44px] px-3.5 py-2.5 text-xs bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] dark:border-stone-700 rounded-xl text-stone-900 dark:text-stone-100 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-[#244b38]"
               required
             />
             {isOutsidePeriod && (
-              <p className="text-[11px] text-amber-800 dark:text-amber-400 mt-1 font-semibold">
-                This date is outside period {period} &mdash; it will be marked Late (still counted).
+              <p className="text-[11px] text-amber-800 dark:text-amber-400 mt-1 font-bold">
+                Note: This date falls outside period {period}. It will be marked Late (still counted).
               </p>
             )}
           </div>
 
           {/* Items Received Chips */}
           <div>
-            <label className="text-xs font-bold text-stone-700 dark:text-stone-300 block mb-1.5">
+            <label className="text-xs font-extrabold text-stone-700 dark:text-stone-300 block mb-1.5">
               Items received (commodity)
             </label>
             <div className="flex flex-wrap gap-2">
@@ -195,10 +213,10 @@ export default function RecordFormPage() {
                   key={c}
                   type="button"
                   onClick={() => setCommodity(c)}
-                  className={`py-1.5 px-3 text-xs rounded-full capitalize font-bold transition-all ${
+                  className={`min-h-[40px] py-1.5 px-3.5 text-xs rounded-full capitalize font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#244b38] ${
                     commodity === c
                       ? 'bg-[#244b38] text-white shadow-xs'
-                      : 'bg-[#fbf9f4] dark:bg-stone-950 text-stone-600 dark:text-stone-400 border border-[#eee7db] hover:border-stone-400'
+                      : 'bg-[#fbf9f4] dark:bg-stone-950 text-stone-600 dark:text-stone-400 border border-[#eee7db]'
                   }`}
                 >
                   {c.replace('_', ' ')}
@@ -207,9 +225,9 @@ export default function RecordFormPage() {
             </div>
           </div>
 
-          {/* Quantity in kg */}
+          {/* Quantity in kg with >= 28px font */}
           <div>
-            <label className="text-xs font-bold text-stone-700 dark:text-stone-300 block mb-1">
+            <label className="text-xs font-extrabold text-stone-700 dark:text-stone-300 block mb-1">
               Quantity (kg/L) *
             </label>
             <div className="flex items-center gap-2">
@@ -220,19 +238,16 @@ export default function RecordFormPage() {
                 max="1000"
                 value={quantityKg}
                 onChange={(e) => setQuantityKg(parseFloat(e.target.value) || 0)}
-                className="w-full px-3.5 py-2.5 text-xl font-mono font-extrabold bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] dark:border-stone-700 rounded-xl text-[#1c3d2e] dark:text-stone-100"
+                className="w-full min-h-[52px] px-3.5 py-2 text-2xl sm:text-3xl font-mono font-extrabold bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] dark:border-stone-700 rounded-xl text-[#1c3d2e] dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
                 required
               />
               <span className="text-sm font-bold text-stone-500">kg</span>
             </div>
-            <p className="text-[10px] text-stone-400 mt-1">
-              0 kg is allowed (e.g. a visit where no ration was distributed).
-            </p>
           </div>
 
-          {/* Evidence Type Tiles */}
+          {/* Evidence Type Tiles: receipt number, SMS text, photo, note, no evidence */}
           <div>
-            <label className="text-xs font-bold text-stone-700 dark:text-stone-300 block mb-1.5">
+            <label className="text-xs font-extrabold text-stone-700 dark:text-stone-300 block mb-1.5">
               Evidence Type (Principle P3) *
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -246,10 +261,10 @@ export default function RecordFormPage() {
                   key={ev.type}
                   type="button"
                   onClick={() => setEvidenceType(ev.type as EvidenceType)}
-                  className={`p-2.5 text-xs rounded-xl font-bold transition-all text-left border ${
+                  className={`min-h-[48px] p-2.5 text-xs rounded-xl font-bold transition-all text-left border focus:outline-none focus:ring-2 focus:ring-[#244b38] ${
                     evidenceType === ev.type
                       ? 'bg-[#244b38] text-white border-[#244b38] shadow-xs'
-                      : 'bg-[#fbf9f4] dark:bg-stone-950 text-stone-700 dark:text-stone-300 border-[#eee7db] hover:bg-stone-100'
+                      : 'bg-[#fbf9f4] dark:bg-stone-950 text-stone-700 dark:text-stone-300 border-[#eee7db]'
                   }`}
                 >
                   {ev.label}
@@ -261,7 +276,7 @@ export default function RecordFormPage() {
           {/* Evidence Content Input */}
           {evidenceType === 'receipt' && (
             <div>
-              <label className="text-xs font-bold text-stone-700 dark:text-stone-300 block mb-1">
+              <label className="text-xs font-extrabold text-stone-700 dark:text-stone-300 block mb-1">
                 Receipt / Transaction Number
               </label>
               <input
@@ -269,7 +284,7 @@ export default function RecordFormPage() {
                 value={evidenceContent}
                 onChange={(e) => handleContentChange(e.target.value)}
                 placeholder="e.g. TXN-89213"
-                className="w-full px-3.5 py-2 text-xs bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] dark:border-stone-700 rounded-xl font-mono"
+                className="w-full min-h-[44px] px-3.5 py-2 text-xs bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] rounded-xl font-mono focus:outline-none focus:ring-2 focus:ring-[#244b38]"
                 required
               />
             </div>
@@ -277,7 +292,7 @@ export default function RecordFormPage() {
 
           {(evidenceType === 'sms' || evidenceType === 'note') && (
             <div>
-              <label className="text-xs font-bold text-stone-700 dark:text-stone-300 block mb-1">
+              <label className="text-xs font-extrabold text-stone-700 dark:text-stone-300 block mb-1">
                 {evidenceType === 'sms' ? 'SMS Message' : 'Visit Note'}
               </label>
               <textarea
@@ -287,13 +302,13 @@ export default function RecordFormPage() {
                 placeholder={
                   evidenceType === 'sms'
                     ? 'Paste the official delivery SMS here'
-                    : 'What happened at this visit?'
+                    : 'What happened at this distribution visit?'
                 }
-                className="w-full px-3.5 py-2 text-xs bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] dark:border-stone-700 rounded-xl focus:ring-2 focus:ring-[#244b38] focus:outline-none"
+                className="w-full px-3.5 py-2 text-xs bg-[#fbf9f4] dark:bg-stone-950 border border-[#eee7db] rounded-xl focus:ring-2 focus:ring-[#244b38] focus:outline-none"
                 required
               />
               {neutralityWarning && (
-                <p className="text-xs text-amber-800 dark:text-amber-300 mt-1 font-medium bg-amber-50 dark:bg-amber-950/40 p-2 rounded border border-amber-200">
+                <p className="text-xs text-amber-900 bg-amber-50 p-2.5 rounded-xl border border-amber-200 mt-1 font-bold">
                   {neutralityWarning}
                 </p>
               )}
@@ -303,7 +318,7 @@ export default function RecordFormPage() {
           {evidenceType === 'none' && (
             <div className="p-3 bg-[#f7f5ed] rounded-xl border border-[#e5decb] text-xs text-stone-700">
               <span className="font-bold block mb-0.5">Note:</span>
-              This record will be saved as <strong className="text-rose-800">Unrecorded</strong> and will not be counted in totals until evidence is linked.
+              This record will be saved as <strong className="text-stone-900">Unrecorded</strong> and will not be counted in confirmed totals until slip evidence is linked.
             </div>
           )}
 
@@ -313,25 +328,25 @@ export default function RecordFormPage() {
             </p>
           )}
 
-          {/* Mark as unclear checkbox */}
+          {/* "Not sure" Checkbox */}
           <div className="pt-1">
-            <label className="flex items-start gap-2 text-xs text-stone-700 dark:text-stone-300 cursor-pointer">
+            <label className="flex items-start gap-2.5 text-xs text-stone-700 dark:text-stone-300 cursor-pointer min-h-[44px]">
               <input
                 type="checkbox"
                 checked={unclear}
                 onChange={(e) => setUnclear(e.target.checked)}
-                className="mt-0.5 rounded text-[#244b38]"
+                className="w-4 h-4 mt-0.5 rounded text-[#244b38] focus:ring-[#244b38]"
               />
-              <span>I&apos;m not sure about this amount (mark as Unclear &mdash; not counted)</span>
+              <span>I am not sure about this amount (mark as <strong>Unclear</strong> &mdash; not counted in totals)</span>
             </label>
           </div>
 
-          {/* Save / Confirm Button (Screen 7 footer) */}
-          <div className="pt-2 flex gap-3">
+          {/* Confirm & Save Button */}
+          <div className="pt-2">
             <button
               type="submit"
               disabled={saving || !!neutralityWarning}
-              className="w-full py-3.5 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-extrabold text-xs rounded-xl shadow-warm flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50"
+              className="w-full min-h-[48px] py-3.5 bg-[#244b38] hover:bg-[#1b3a2b] text-white font-extrabold text-xs rounded-2xl shadow-warm flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#244b38]"
             >
               <Check className="w-4 h-4" />
               <span>Confirm &amp; Save Record</span>
