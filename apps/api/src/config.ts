@@ -22,10 +22,16 @@ export const config = {
     .filter(Boolean),
   dataDir: resolve(process.env.DATA_DIR ?? './data'),
   dbFile: process.env.DB_FILE ?? '',
-  ai: {
-    apiKey: process.env.ANTHROPIC_API_KEY ?? '',
-    model: process.env.AI_MODEL || 'claude-opus-5-5',
-    fallbacks: (process.env.AI_FALLBACKS ?? 'true') !== 'false',
+  /** Hosted open-model API (OpenAI-compatible). Default: NVIDIA's API catalog. */
+  llm: {
+    apiKey: process.env.LLM_API_KEY || process.env.NVIDIA_API_KEY || '',
+    baseUrl: (process.env.LLM_BASE_URL || 'https://integrate.api.nvidia.com/v1').replace(/\/$/, ''),
+    timeoutMs: num('LLM_TIMEOUT_MS', 60_000),
+    models: {
+      fast: process.env.LLM_MODEL_FAST || 'nvidia/nemotron-3.5-lightning-30b-a3b',
+      translate: process.env.LLM_MODEL_TRANSLATE || 'google/gemma-4-31b-it',
+      vision: process.env.LLM_MODEL_VISION || 'meta/llama-3.2-90b-vision-instruct',
+    },
   },
   ocr: {
     bin: process.env.TESSERACT_BIN || 'tesseract',

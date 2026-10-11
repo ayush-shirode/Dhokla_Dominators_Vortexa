@@ -50,7 +50,7 @@ Out of scope (deliberately): auto-submission, portal scraping, supply-chain trac
 apps/web  (Next.js 16 PWA)  ──HTTPS──►  apps/api (Express + SQLite)
    │  IndexedDB = source of truth on device        │  device-token auth, per-device data
    │  sync outbox → POST /sync/batch               │  photos: quality gate → local OCR → Aadhaar mask → store masked JPEG
-   │                                               │  AI drafts (Claude, opt-in per call) + rule-based local engines
+   │                                               │  AI drafts (open models via hosted API, opt-in per call) + rule-based local engines
    └── @repo/shared  ◄──── same code ────────────► │  reports: immutable snapshots + SHA-256, PDF/HTML/TXT export
         engine · templates · guards · extractors · FAQ · typed API client
 ```
@@ -65,7 +65,7 @@ apps/web  (Next.js 16 PWA)  ──HTTPS──►  apps/api (Express + SQLite)
 | Validation | zod 4 | Precise 400 errors with field paths |
 | Images | sharp | Fast normalise, quality metrics, masking, EXIF stripping |
 | Local OCR | tesseract 5 (eng + hin), on the server | Finds Aadhaar numbers **without any third-party call**, and is the offline reader |
-| Cloud AI | Claude (`claude-opus-5-5`) via the Anthropic SDK, structured JSON outputs | Strong multilingual reading/translation; schema-constrained output; server-side refusal fallback enabled |
+| Cloud AI | Open models on NVIDIA's hosted API (OpenAI-compatible): `google/gemma-4-31b-it` (translation), `nvidia/nemotron-3.5-lightning-30b-a3b` (chat, voice), `meta/llama-3.2-90b-vision-instruct` (photos). Configurable; `ai:check` tests them | Free key, no vendor lock-in. JSON is requested in the prompt, validated with zod, and repaired once, so any compatible model works |
 | PDF | pdfkit + Noto Sans / Noto Sans Devanagari | Correct Hindi shaping (verified visually) |
 | Tests | vitest + supertest | 37 tests over the engine, principles and full API flows |
 
@@ -92,15 +92,15 @@ Soft-deletes on households/checks/records give tombstones for sync. `DELETE /dev
 
 | Feature | Local (no third party) | Cloud (only with `allowCloud: true`) | Output |
 |---|---|---|---|
-| OCR of slips/SMS/notes | tesseract + rule-based extractor | Claude vision on the **masked** image | Draft; quantity = code sum of line items |
+| OCR of slips/SMS/notes | tesseract + rule-based extractor | Vision model on the **masked** image | Draft; quantity = code sum of line items |
 | Blur/lighting detection | sharp metrics (Laplacian variance, brightness, contrast) | — | 422 `RETAKE_PHOTO` |
 | Aadhaar masking | tesseract word boxes + Verhoeff check → black boxes | — | Masked JPEG only is stored |
-| Document-type detection | keyword heuristics + OCR confidence | Claude classification | Overridable suggestion |
-| Pasted text | regex extractor (EN/HI, Indic digits) | Claude (regional scripts) | Draft |
-| Voice → form | Web Speech API in browser; rule-based parser (EN/Hinglish/HI numbers, "half") | Claude when local is weak | Draft + read-back sentence |
-| Translation | EN/HI templates (no AI) | Claude + back-translation + number check + neutrality check | Draft → confirmed translation |
+| Document-type detection | keyword heuristics + OCR confidence | Vision/text model classification | Overridable suggestion |
+| Pasted text | regex extractor (EN/HI, Indic digits) | Text model (regional scripts) | Draft |
+| Voice → form | Web Speech API in browser; rule-based parser (EN/Hinglish/HI numbers, "half") | Text model when local is weak | Draft + read-back sentence |
+| Translation | EN/HI templates (no AI) | Translation model + back-translation + number check + neutrality check | Draft → confirmed translation |
 | Read-back (TTS) | Browser `speechSynthesis`; server gives sentence segments | — | — |
-| Explainer chatbot | FAQ (EN/HI) + cause-question guardrail | Claude, scoped, post-checked for neutrality | Q&A only |
+| Explainer chatbot | FAQ (EN/HI) + cause-question guardrail | Text model, scoped, post-checked for neutrality | Q&A only |
 
 ## 7. Work plan
 
@@ -119,7 +119,7 @@ Soft-deletes on households/checks/records give tombstones for sync. `DELETE /dev
 6. Run the acceptance checklist in FRONTEND_SPEC §14
 
 ### Integration & demo prep
-- Set `ANTHROPIC_API_KEY` to enable cloud features; otherwise everything runs local and rule-based.
+- Set `NVIDIA_API_KEY` and run `pnpm --filter @repo/api ai:check` to enable and test cloud features; otherwise everything runs local and rule-based.
 - Demo script (5 min):
   1. Choose PHH, 4 members, then confirm the rule (show it can't be skipped).
   2. Add a record by pasting an SMS, then add one by voice ("on the 5th I only got half"). Show the read-back and the Unclear outcome when it isn't verified.

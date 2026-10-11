@@ -98,7 +98,7 @@ export type TemplateLanguage = 'en' | 'hi';
 export type DocType = 'receipt' | 'sms_screenshot' | 'handwritten_note' | 'photo_note' | 'unknown';
 export type DraftKind = 'ocr' | 'text_extract' | 'voice' | 'translation';
 export type DraftStatus = 'pending' | 'confirmed' | 'rejected';
-/** 'local' = on this server / device with no third-party call. 'cloud' = third-party AI (Claude). */
+/** 'local' = on this server / device with no third-party call. 'cloud' = third-party hosted AI model. */
 export type AiEngine = 'local' | 'cloud';
 export type TranslationPurpose = 'report' | 'grievance_description' | 'evidence_text';
 /** `card_portal` = where a state/UT publishes ration card details (listed on the NFSA website). */
@@ -581,7 +581,7 @@ export interface ChatMessage {
 
 export interface ChatReply {
   reply: string;
-  /** faq = matched built-in answer, guardrail = scope redirect, ai = Claude answer. */
+  /** faq = matched built-in answer, guardrail = scope redirect, ai = hosted-model answer. */
   source: 'faq' | 'guardrail' | 'ai' | 'fallback';
   faqId: string | null;
   suggestions: string[];

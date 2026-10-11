@@ -44,7 +44,7 @@ import { idSchema, languageSchema, recordInputSchema } from '../lib/schemas.js';
 import { getCheck, putRecord, requireCheck } from '../repo/checks.js';
 import { createDraft, getDraft, requirePendingDraft, resolveDraft } from '../repo/drafts.js';
 import { getHousehold } from '../repo/households.js';
-import { cloudAvailable } from '../services/ai/claude.js';
+import { cloudAvailable } from '../services/ai/llm.js';
 import { cloudChat, cloudExtract, cloudTranslate, cloudVoiceParse, numbersPreserved } from '../services/ai/tasks.js';
 import { grievanceDescription, setTranslatedDescription } from '../services/grievance.js';
 import { ocrCapability, runOcr } from '../services/ocr.js';

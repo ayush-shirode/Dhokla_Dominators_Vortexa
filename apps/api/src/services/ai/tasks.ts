@@ -22,7 +22,7 @@ import {
   type LanguageCode,
   type VoiceParseResult,
 } from '@repo/shared';
-import { nullable, obj, structuredCall } from './claude.js';
+import { nullable, obj, structuredCall, type LlmContent } from './llm.js';
 
 const DOC_TYPES = ['receipt', 'sms_screenshot', 'handwritten_note', 'photo_note', 'unknown'] as const;
 const COMMODITIES = ['rice', 'wheat', 'coarse_grains', 'mixed', 'other'] as const;
@@ -89,11 +89,11 @@ export async function cloudExtract(input: {
   sourceType?: 'sms' | 'receipt' | 'note';
 }): Promise<ExtractionResult> {
   const context = `Period being checked: ${input.period ?? 'unknown'}. Today: ${input.today}.${input.sourceType ? ` The user says this is: ${input.sourceType}.` : ''}`;
-  const content: Parameters<typeof structuredCall>[0]['content'] = [];
-  if (input.image) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: input.image.toString('base64') } });
+  const content: LlmContent[] = [];
+  if (input.image) content.push({ type: 'image', mediaType: 'image/jpeg', base64: input.image.toString('base64') });
   content.push({ type: 'text', text: input.text ? `${context}\n\nText to read:\n"""\n${input.text}\n"""` : `${context}\n\nRead the attached image.` });
 
-  const r = await structuredCall({ system: EXTRACTION_SYSTEM, content, schema: extractionSchema, validator: zExtraction, effort: 'medium' });
+  const r = await structuredCall({ system: EXTRACTION_SYSTEM, content, schema: extractionSchema, validator: zExtraction, task: input.image ? 'vision' : 'fast', maxTokens: 3000 });
   return assembleExtraction(r, input.sourceType);
 }
 
@@ -198,8 +198,8 @@ export async function cloudVoiceParse(input: { transcript: string; language: Lan
     content: [{ type: 'text', text: `Today: ${input.today}. Period being checked: ${input.period ?? 'unknown'}. Spoken language: ${languageName(input.language)}.\n\nSentence: "${input.transcript}"` }],
     schema: voiceSchema,
     validator: zVoice,
-    effort: 'low',
-    maxTokens: 4000,
+    task: 'fast',
+    maxTokens: 1500,
   });
   const f = <T>(x: { value: T | null; confidence: number; rawText: string | null }): ExtractedField<T> =>
     x.value === null ? { value: null, confidence: 0, rawText: x.rawText } : { value: x.value, confidence: clamp01(x.confidence), rawText: x.rawText };
@@ -253,8 +253,9 @@ export async function cloudTranslate(input: { text: string; targetLanguage: Lang
     content: [{ type: 'text', text: `Target language: ${languageName(input.targetLanguage)} (${input.targetLanguage}).\n\nSource:\n"""\n${input.text}\n"""` }],
     schema: translateSchema,
     validator: zTranslate,
-    effort: 'medium',
-    maxTokens: 32000,
+    task: 'translate',
+    temperature: 0.2,
+    maxTokens: 8000,
   });
 }
 
@@ -299,7 +300,8 @@ export async function cloudChat(input: { messages: ChatMessage[]; language: Lang
     content: [{ type: 'text', text: `Reply in ${languageName(input.language)}.\n\nConversation so far:\n${transcript}\n\nWrite the assistant's next reply.` }],
     schema: chatSchema,
     validator: zChat,
-    effort: 'low',
-    maxTokens: 4000,
+    task: 'fast',
+    temperature: 0.3,
+    maxTokens: 1200,
   });
 }

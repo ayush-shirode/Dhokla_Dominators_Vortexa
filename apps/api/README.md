@@ -13,7 +13,7 @@ pnpm dev:api               # http://localhost:5000/api/v1   (GET /meta shows cap
 pnpm test                  # 37 tests: engine, principles, full API flows, photo masking, sync
 ```
 
-Requirements: Node ≥ 22.13 (for `node:sqlite`). Optional: `tesseract` ≥ 5 for local OCR and Aadhaar masking. Without it, photo upload needs `?userConfirmedNoIds=true` (see below). Optional: `ANTHROPIC_API_KEY` for the cloud AI features.
+Requirements: Node ≥ 22.13 (for `node:sqlite`). Optional: `tesseract` ≥ 5 for local OCR and Aadhaar masking. Without it, photo upload needs `?userConfirmedNoIds=true` (see below). Optional: `NVIDIA_API_KEY` for the hosted AI features (then run `pnpm ai:check`).
 
 ## Environment
 
@@ -22,9 +22,11 @@ Requirements: Node ≥ 22.13 (for `node:sqlite`). Optional: `tesseract` ≥ 5 fo
 | `PORT` | 5000 | |
 | `FRONTEND_URL` | http://localhost:3000 | Comma-separated CORS origins |
 | `DATA_DIR` | ./data | SQLite file + masked photos (gitignored) |
-| `ANTHROPIC_API_KEY` | – | Enables cloud AI. Empty = fully local/rule-based |
-| `AI_MODEL` | claude-opus-5-5 | |
-| `AI_FALLBACKS` | true | Server-side refusal fallback (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`) |
+| `NVIDIA_API_KEY` (or `LLM_API_KEY`) | – | Enables hosted AI. Empty = fully local/rule-based |
+| `LLM_BASE_URL` | https://integrate.api.nvidia.com/v1 | Any OpenAI-compatible endpoint |
+| `LLM_MODEL_FAST` | nvidia/nemotron-3.5-lightning-30b-a3b | Chat, voice, short text |
+| `LLM_MODEL_TRANSLATE` | google/gemma-4-31b-it | Translation |
+| `LLM_MODEL_VISION` | meta/llama-3.2-90b-vision-instruct | Reading slip photos |
 | `TESSERACT_BIN`, `TESSDATA_DIR`, `OCR_LANGS` | tesseract, ./tessdata, eng+hin | Local OCR |
 | `FONT_DIR` | ./assets/fonts | PDF fonts |
 | `ADMIN_TOKEN` | – | Required for `PUT/DELETE /grievance-channels/:id` (header `X-Admin-Token`) |
@@ -41,7 +43,7 @@ src/
   middleware/    device-token auth, admin auth, error handler
   repo/          households, checks+records, drafts, channels
   services/      image (quality/mask), ocr (tesseract), photos (upload pipeline),
-                 reports, grievance (+filing), export (html/pdf), ai/claude.ts, ai/tasks.ts
+                 reports, grievance (+filing), export (html/pdf), ai/llm.ts, ai/tasks.ts
   routes/        meta, devices, data, photos, ai, reports, channels, sync
 tests/           shared-engine.test.ts, api.test.ts
 ```
@@ -56,7 +58,7 @@ There are no user accounts. `POST /devices` returns a random 256-bit bearer toke
 **Photo pipeline** (`services/photos.ts`): decode → auto-rotate, ≤ 2000 px, re-encode JPEG, strip EXIF/GPS → quality gate (blur, darkness, overexposure, contrast, size) → local tesseract OCR → find Aadhaar/VID numbers (Verhoeff-checked) → black boxes → store **only the masked JPEG** → cache the redacted OCR text.
 Masking is best-effort: it depends on OCR reading the number. If local OCR is unavailable, the upload is refused with `MASKING_UNAVAILABLE` until the user confirms no ID is visible (`?userConfirmedNoIds=true`). The photo is then stored with `maskingPerformed: false`.
 
-**What each AI call sends to the third-party service (Anthropic).** Calls happen only when the request has `allowCloud: true`, which the client sends after the user's explicit consent:
+**What each AI call sends to the third-party service (NVIDIA's hosted API by default; check its terms for data retention before real use).** Calls happen only when the request has `allowCloud: true`, which the client sends after the user's explicit consent:
 
 | Endpoint | Data sent | Not sent |
 |---|---|---|

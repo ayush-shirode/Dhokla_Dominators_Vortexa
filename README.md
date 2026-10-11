@@ -34,7 +34,7 @@ sudo pacman -S tesseract
 brew install tesseract
 ```
 
-Without Tesseract the app still works: photo uploads ask the user to confirm no Aadhaar number is visible, and receipt reading falls back to manual entry (or to Claude, if configured).
+Without Tesseract the app still works: photo uploads ask the user to confirm no Aadhaar number is visible, and receipt reading falls back to manual entry (or to the hosted AI model, if configured).
 
 ### 2. Get the code and install
 
@@ -63,7 +63,7 @@ The defaults work for local development: API on port 5000, web on port 3000. Set
 
 | Variable | What it does |
 |---|---|
-| `ANTHROPIC_API_KEY` | Turns on the optional cloud AI features: AI photo reading, translation and AI chat answers. Leave it empty to run fully local and rule-based. |
+| `NVIDIA_API_KEY` | Turns on the optional AI features: AI photo reading, translation and AI chat answers, using open models on NVIDIA's hosted API (free key at [build.nvidia.com](https://build.nvidia.com)). Leave it empty to run fully local and rule-based. Then run `pnpm --filter @repo/api ai:check` to test the models. |
 | `ADMIN_TOKEN` | Lets you edit the grievance-channel directory through the API. Set it to a long random string. |
 | `FRONTEND_URL` | The browser origins allowed to call the API (comma-separated). |
 
@@ -106,7 +106,7 @@ The service worker only runs in a **production build**, so test offline behaviou
 - To install it: in Chrome, use **Add to Home screen**. Browsers only allow installing over `https://` or on `localhost`.
 - To test offline in Chrome: DevTools → Network → **Offline**.
 
-Cloud AI features (AI photo reading, translation into languages other than English and Hindi, AI chat answers) need `ANTHROPIC_API_KEY` on the server. The app asks the user's permission before each use, unless they chose "Always allow" in Settings.
+Cloud AI features (AI photo reading, translation into languages other than English and Hindi, AI chat answers) need `NVIDIA_API_KEY` on the server. The app asks the user's permission before each use, unless they chose "Always allow" in Settings.
 
 ### 8. Production build
 
@@ -147,7 +147,7 @@ packages/shared  @repo/shared — types, deterministic entitlement engine, neutr
 Why this stack:
 - **One TypeScript contract** across client and server, and the arithmetic engine runs offline in the browser (Spec §5.7).
 - **Local Tesseract OCR** masks Aadhaar numbers without any third-party call.
-- **Claude (`claude-opus-5-5`)** is used for opt-in AI reading, translation and help, and always returns drafts for the user to confirm.
+- **Open models on NVIDIA's hosted API** (Llama, Gemma and Nemotron by default; configurable) are used for opt-in AI reading, translation and help, and always return drafts for the user to confirm.
 
 ## Core principles (enforced in code)
 1. The entitlement rule is explicit and user-confirmed.
